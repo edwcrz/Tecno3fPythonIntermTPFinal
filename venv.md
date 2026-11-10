@@ -1,16 +1,12 @@
-### explico instalación de venv
+##### explico instalación de venv
 ##### 
-### PS C:\Users\Eduardo\Mi unidad (edwcrz@gmail.com)\edwcrzdev\PythonProjects\Tecno3F\Tecno3fPythonIntermTPFinal> & 'C:\Users\Eduardo\AppData\Local\Programs\Python\Python313\python.exe' '"c:/Users/Eduardo/Mi unidad (edwcrz@gmail.com)/edwcrzdev/PythonProjects/Tecno3F/Tecno3fPythonIntermTPFinal/main.py"'
-##### Hello world
 ##### PS C:\Users\Eduardo\Mi unidad (edwcrz@gmail.com)\edwcrzdev\PythonProjects\Tecno3F\Tecno3fPythonIntermTPFinal> python -m venv .venv
-
 ##### Directorio: C:\Users\Eduardo\Mi unidad (edwcrz@gmail.com)\edwcrzdev\PythonProjects\Tecno3F\Tecno3fPythonIntermTPFinal
 ##### Mode                 LastWriteTime         Length Name
 ##### d-----         9/11/2026     20:31                .venv
 ##### -a----         9/11/2026     20:17             21 main.py
 ##### -a----         9/11/2026     20:18              0 README.MD
 ##### -a----         9/11/2026     20:31            492 venv.md
-
 ##### .\.venv\Scripts\Activate.ps1
 ##### (.venv) PS C:\Users\Eduardo\Mi unidad (edwcrz@gmail.com)\edwcrzdev\PythonProjects\Tecno3F\Tecno3fPythonIntermTPFinal>
 ##### actualizopipi pip con:
