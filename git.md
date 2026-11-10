@@ -17,8 +17,9 @@
 
 git init
 git add .
+git branch -M main
 git commit -m "registro proyecto Python Intermedio Trabajo Practico Final"
-git remote add origin https://github.com/usuario/repositorio.git
+git remote add origin https://github.com/edwcrz/Tecno3fPythonIntermTPFinal.git
 git push -u origin main
 
 crear -gitignore
