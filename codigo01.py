@@ -22,7 +22,8 @@ def cargar_partes():
         """
         materias = {}
         for id_materia, nombre in registros:
-            materias[id_materia] = nombre"""
+            materias[id_materia] = nombre
+        """
 
         return registros #materias
 

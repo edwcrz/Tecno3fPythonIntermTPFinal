@@ -9,8 +9,9 @@
 ##### -a----         9/11/2026     20:31            492 venv.md
 ##### .\.venv\Scripts\Activate.ps1
 ##### (.venv) PS C:\Users\Eduardo\Mi unidad (edwcrz@gmail.com)\edwcrzdev\PythonProjects\Tecno3F\Tecno3fPythonIntermTPFinal>
-##### actualizopipi pip con:
+##### actualizo pip con:
 ##### python.exe -m pip install --upgrade pip
+#####
 ##### sqlite3 ya viene integrada y no requiere pip install sqlite3
 ##### realizo una prueba con otro framework que utilizaremos
 ##### pip install fastapi
