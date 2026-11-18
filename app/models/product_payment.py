@@ -1,0 +1,71 @@
+import sqlite3
+from typing import Optional
+
+
+"""
+CREATE TABLE IF NOT EXISTS product_payment (
+    product_payment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,
+    payment_method_id INTEGER NOT NULL,
+    price DECIMAL(10, 2) NOT NULL DEFAULT 0.01,
+    currency TEXT NULL DEFAULT "Pesos",
+"""
+        
+# class ProductPaymentBase(BaseModel):
+#    product_id: int = Field(..., ge=1, example=1)
+#    payment_method_id: int = Field(..., ge=1, example=1)
+#    price: float = Field(..., ge=0.01, example=10.99)
+#    currency: str = Field(..., min_length=1, max_length=100, example="Pesos")
+
+class ProductPaymentModel:
+
+    @staticmethod
+    # esta funcion es para obtener todos los productos de la base de datos, se va a usar en el endpoint GET /products
+    def get_all(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+        cursor = conn.cursor()
+        cursor.execute("SELECT product_id, payment_method_id, price, currency FROM product_payment")
+        return cursor.fetchall()
+
+    @staticmethod
+    def get_by_id(conn: sqlite3.Connection, product_payment_id: int) -> Optional[sqlite3.Row]:
+        cursor = conn.cursor()
+        cursor.execute("SELECT product_id, payment_method_id, price, currency FROM product_payment WHERE product_payment_id = ?", (product_payment_id,))
+        return cursor.fetchone()
+
+    @staticmethod
+    def create(conn: sqlite3.Connection, product_payment_data: dict) -> int:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO product_payment (product_id, payment_method_id, price, currency)
+            VALUES (?, ?, ?, ?)
+        """, (
+            product_payment_data["product_id"],
+            product_payment_data["payment_method_id"],
+            product_payment_data["price"],
+            product_payment_data["currency"]
+        ))
+        return cursor.lastrowid
+
+    @staticmethod
+    def update(conn: sqlite3.Connection, product_payment_id: int, product_payment_data: dict) -> bool:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE product_payment
+            SET product_id = ?, payment_method_id = ?, price = ?, currency = ?
+            WHERE product_payment_id = ?
+        """, (
+            product_payment_data["product_id"],
+            product_payment_data["payment_method_id"],
+            product_payment_data["price"],
+            product_payment_data["currency"],
+            product_payment_id
+        ))
+        return cursor.rowcount > 0
+
+    @staticmethod
+    def delete(conn: sqlite3.Connection, product_payment_id: int) -> bool:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM product_payment WHERE product_payment_id = ?", (product_payment_id,))
+        return cursor.rowcount > 0
+
+    

@@ -1,1 +1,8 @@
 .venv
+.pyc
+.pyd
+.pyo
+.drawio
+.csv
+msql
+.xlsx

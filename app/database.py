@@ -42,12 +42,12 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS product (
                 product_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
-                description TEXT NULL,
+                description TEXT NOT NULL,
                 ingredients TEXT NULL,
                 taste TEXT NULL,
                 texture TEXT NULL,
-                size TEXT NULL,
-                product_category TEXT NULL,
+                size TEXT NOT NULL,
+                product_category TEXT NOT NULL,
                 product_subcategory TEXT NULL,
                 product_group TEXT NULL,
                 product_subgroup TEXT NULL,
@@ -57,11 +57,11 @@ def init_db() -> None:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS payment_method (
                 payment_method_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                method_name TEXT NOT NULL DEFAULT "Mercado Pago",
-                payment_category TEXT NULL,
-                overload INTEGER NOT NULL DEFAULT 0,
-                payment_term decimal(10, 2) NOT NULL DEFAULT 0.00,
-                subcategory TEXT NULL);
+                method_name TEXT NOT NULL DEFAULT "Efectivo",
+                overload decimal(2, 2) NOT NULL DEFAULT 0.00,
+                payment_term INTEGER NOT NULL DEFAULT 0,
+                payment_category TEXT NULL);
+                payment_subcategory TEXT NULL);
         """)
 
         cursor.execute("""
@@ -107,10 +107,10 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS orders (
                 order_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 customer_id INTEGER NOT NULL,
-                date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                quantity INTEGER NOT NULL DEFAULT 0,
+                date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 state TEXT NOT NULL DEFAULT 'pending',
                 communication TEXT NULL,
+                payment_method NOT NULL DEFAULT 'efectivo',
                 FOREIGN KEY (customer_id) REFERENCES customer (customer_id) ON DELETE RESTRICT);
         """)
         cursor.execute("""
