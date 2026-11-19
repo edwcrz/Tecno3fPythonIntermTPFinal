@@ -60,7 +60,7 @@ def init_db() -> None:
                 method_name TEXT NOT NULL DEFAULT "Efectivo",
                 overload decimal(2, 2) NOT NULL DEFAULT 0.00,
                 payment_term INTEGER NOT NULL DEFAULT 0,
-                payment_category TEXT NULL);
+                payment_category TEXT NULL,
                 payment_subcategory TEXT NULL);
         """)
 
@@ -87,7 +87,7 @@ def init_db() -> None:
                 age TEXT NULL,
                 gender TEXT NULL,
                 likes INTEGER NULL DEFAULT 0,
-                notes TEXT NULL);   
+                notes TEXT NULL);
         """)
 
         cursor.execute("""
@@ -110,20 +110,19 @@ def init_db() -> None:
                 date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 state TEXT NOT NULL DEFAULT 'pending',
                 communication TEXT NULL,
-                payment_method NOT NULL DEFAULT 'efectivo',
+                payment_method TEXT NOT NULL DEFAULT 'efectivo',
                 FOREIGN KEY (customer_id) REFERENCES customer (customer_id) ON DELETE RESTRICT);
         """)
         cursor.execute("""
-                CREATE TABLE IF NOT EXISTS order_detail (
-                    order_detail_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    order_id INTEGER NOT NULL,
-                    product_id INTEGER NOT NULL,
-                    quantity INTEGER NOT NULL,
-                    unit_price REAL NOT NULL,
-                    FOREIGN KEY (order_id) REFERENCES orders (order_id) ON DELETE CASCADE,
-                    FOREIGN KEY (product_id) REFERENCES product (product_id) ON DELETE RESTRICT
-                )
-            """)
+            CREATE TABLE IF NOT EXISTS order_detail (
+                order_detail_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                order_id INTEGER NOT NULL,
+                product_id INTEGER NOT NULL,
+                quantity INTEGER NOT NULL CHECK (quantity > 0),
+                unit_price REAL NOT NULL CHECK (unit_price >= 0),
+                FOREIGN KEY (order_id) REFERENCES orders (order_id) ON DELETE CASCADE,
+                FOREIGN KEY (product_id) REFERENCES product (product_id) ON DELETE RESTRICT);
+        """)
         conn.commit()
 
 if __name__ == "__main__":

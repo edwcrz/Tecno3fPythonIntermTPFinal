@@ -1,8 +1,10 @@
-.venv
+.venv/
+venv/
 .pyc
 .pyd
 .pyo
 .drawio
 .csv
-msql
+.msql
 .xlsx
+__pycache__/

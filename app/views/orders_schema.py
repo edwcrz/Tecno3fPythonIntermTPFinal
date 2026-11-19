@@ -8,13 +8,12 @@ from datetime import datetime
     date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     state TEXT NOT NULL DEFAULT 'pending',
     communication TEXT NULL,
-    payment_method NOT NULL DEFAULT 'efectivo',
+    payment_method TEXT NOT NULL DEFAULT 'efectivo'
     )"""
 
 class OrderBase(BaseModel):
     customer_id: int = Field(..., example=1)
     date: datetime = Field(..., example="2023-01-01 00:00:00")
-    quantity: int = Field(..., ge=0, example=1)
     state: str = Field(..., min_length=1, max_length=100, example="pending")
     communication: Optional[str] = Field(None, max_length=200, example="Order Communication")
     payment_methond: str = Field(..., min_length=1, max_length=100, example="efectivo")
