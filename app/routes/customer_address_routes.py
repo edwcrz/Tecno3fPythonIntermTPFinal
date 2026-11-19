@@ -3,7 +3,7 @@ import sqlite3
 from typing import List
 from database import get_db_connection
 
-from app.models.customer_address import CustomerAddressModel
+from app.models.customer_address_models import CustomerAddressModel
 from app.views import CustomerAddressCreate, CustomerAddressResponse, CustomerAddressUpdate
 
 router = APIRouter(prefix="/customer_address", tags=["CustomerAddress"])

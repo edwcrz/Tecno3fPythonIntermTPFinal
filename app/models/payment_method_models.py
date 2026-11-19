@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS payment_method (
     method_name TEXT NOT NULL DEFAULT "Efectivo",
     overload decimal(2, 2) NOT NULL DEFAULT 0.00,
     payment_term INTEGER NOT NULL DEFAULT 0,
-    payment_category TEXT NULL);
+    payment_category TEXT NULL),
     payment_subcategory TEXT NULL);
 """
 
@@ -26,7 +26,7 @@ class PaymentMethodModel:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT payment_method_id, method_name, overload, payment_term, payment_category, payment_subcategory 
-            FROM payment_method""")
+            FROM payment_method;""")
         return cursor.fetchall()
 
     @staticmethod
@@ -35,7 +35,7 @@ class PaymentMethodModel:
         cursor.execute("""
             SELECT payment_method_id, method_name, overload, payment_term, payment_category, payment_subcategory 
             FROM payment_method 
-            WHERE payment_method_id = ?""", (payment_method_id,))
+            WHERE payment_method_id = ?;""", (payment_method_id,))
         return cursor.fetchone()
 
     @staticmethod
@@ -43,7 +43,7 @@ class PaymentMethodModel:
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO payment_method (method_name, overload, payment_term, payment_category, payment_subcategory)
-            VALUES (?, ?, ?, ?, ?)""", (
+            VALUES (?, ?, ?, ?, ?);""", (
                 payment_method_data["method_name"],
                 payment_method_data["overload"],
                 payment_method_data["payment_term"],
@@ -57,7 +57,7 @@ class PaymentMethodModel:
         cursor.execute("""
             UPDATE payment_method
             SET method_name = ?, overload = ?, payment_term = ?, payment_category = ?, payment_subcategory = ?
-            WHERE payment_method_id = ?""", (
+            WHERE payment_method_id = ?;""", (
                 payment_method_data["method_name"],
                 payment_method_data["overload"],
                 payment_method_data["payment_term"],
@@ -71,6 +71,6 @@ class PaymentMethodModel:
         cursor = conn.cursor()
         cursor.execute("""
             DELETE FROM payment_method 
-            WHERE payment_method_id = ?""", (payment_method_id,))
+            WHERE payment_method_id = ?;""", (payment_method_id,))
         return cursor.rowcount > 0
     

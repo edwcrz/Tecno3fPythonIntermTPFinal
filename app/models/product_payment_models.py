@@ -24,7 +24,7 @@ class ProductPaymentModel:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT product_id, payment_method_id, price, currency 
-            FROM product_payment""")
+            FROM product_payment;""")
         return cursor.fetchall()
 
     @staticmethod
@@ -33,7 +33,16 @@ class ProductPaymentModel:
         cursor.execute("""
             SELECT product_id, payment_method_id, price, currency 
             FROM product_payment 
-            WHERE product_payment_id = ?""", (product_payment_id,))
+            WHERE product_payment_id = ?;""", (product_payment_id,))
+        return cursor.fetchone()
+
+    @staticmethod
+    def get_by_product_and_payment_id(conn: sqlite3.Connection, product_id: int, payment_method_id: int) -> Optional[sqlite3.Row]:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT product_payment_id, product_id, payment_method_id, price, currency
+            FROM product_payment
+            WHERE product_id = ? AND payment_method_id = ?;""", (product_id, payment_method_id))
         return cursor.fetchone()
 
     @staticmethod
@@ -41,7 +50,7 @@ class ProductPaymentModel:
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO product_payment (product_id, payment_method_id, price, currency)
-            VALUES (?, ?, ?, ?)""", (
+            VALUES (?, ?, ?, ?);""", (
                 product_payment_data["product_id"],
                 product_payment_data["payment_method_id"],
                 product_payment_data["price"],
@@ -54,7 +63,7 @@ class ProductPaymentModel:
         cursor.execute("""
             UPDATE product_payment
             SET product_id = ?, payment_method_id = ?, price = ?, currency = ?
-            WHERE product_payment_id = ?""", (
+            WHERE product_payment_id = ?;""", (
                 product_payment_data["product_id"],
                 product_payment_data["payment_method_id"],
                 product_payment_data["price"],
@@ -67,7 +76,7 @@ class ProductPaymentModel:
         cursor = conn.cursor()
         cursor.execute("""
             DELETE FROM product_payment 
-            WHERE product_payment_id = ?""", (product_payment_id,))
+            WHERE product_payment_id = ?;""", (product_payment_id,))
         return cursor.rowcount > 0
 
     

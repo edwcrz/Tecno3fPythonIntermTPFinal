@@ -25,7 +25,7 @@ class OrderDetailModel:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT order_detail_id, order_id, product_id, quantity, unit_price
-            FROM order_detail """)
+            FROM order_detail;""")
         return cursor.fetchall()
 
     @staticmethod
@@ -36,7 +36,7 @@ class OrderDetailModel:
         cursor.execute("""
             SELECT order_detail_id, order_id, product_id, quantity, unit_price 
             FROM order_detail 
-            WHERE order_detail_id = ? """, (order_detail_id,))
+            WHERE order_detail_id = ?;""", (order_detail_id,))
         return cursor.fetchone()
 
     @staticmethod
@@ -45,7 +45,7 @@ class OrderDetailModel:
         cursor.execute("""
             SELECT order_detail_id, order_id, product_id, quantity, unit_price
             FROM order_detail
-            WHERE order_id = ? """, (order_id,))
+            WHERE order_id = ?;""", (order_id,))
         return cursor.fetchone()
 
     # esta funcion es para crear un detalle de la orden en la base de datos, 
@@ -56,7 +56,7 @@ class OrderDetailModel:
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO order_detail (order_id, product_id, quantity, unit_price)
-            VALUES (?, ?, ?, ?) """, (
+            VALUES (?, ?, ?, ?);""", (
                 order_detail_data["order_id"],
                 order_detail_data["product_id"],
                 order_detail_data["quantity"],
@@ -72,7 +72,7 @@ class OrderDetailModel:
         cursor.execute("""
             UPDATE order_detail
             SET order_id = ?, product_id = ?, quantity = ?, unit_price = ?
-            WHERE order_detail_id = ? """, (
+            WHERE order_detail_id = ?;""", (
                 order_detail_data["order_id"],
                 order_detail_data["product_id"],
                 order_detail_data["quantity"],
@@ -89,7 +89,7 @@ class OrderDetailModel:
         cursor = conn.cursor()
         cursor.execute("""
             DELETE FROM order_detail 
-            WHERE order_detail_id = ?""", (order_detail_id,))
+            WHERE order_detail_id = ?;""", (order_detail_id,))
         return cursor.rowcount > 0
 
     @staticmethod
@@ -97,5 +97,5 @@ class OrderDetailModel:
         cursor = conn.cursor()
         cursor.execute( """
             DELETE FROM order_detail
-            WHERE order_id = ? """, (order_id,))
+            WHERE order_id = ?;""", (order_id,))
         return cursor.rowcount >= 0

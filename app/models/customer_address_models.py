@@ -31,30 +31,31 @@ class CustomerAddressModel:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT address_id, address, locality, province, pais, postal_code, notes, customer_id 
-            FROM customer_address""")
+            FROM customer_address;""")
         return cursor.fetchall()
     
     # esta funcion es para obtener un detalle de customer address por su id de la base de datos, 
     # se va a usar en el endpoint GET /customer_address/{address_id}
     @staticmethod
-    def get_by_id(conn: sqlite3.Connection, address_id: str) -> Optional[sqlite3.Row]:
+    def get_by_id(conn: sqlite3.Connection, address_id: int) -> Optional[sqlite3.Row]:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT address_id, address, locality, province, pais, postal_code, notes, customer_id 
             FROM customer_address 
-            WHERE address_id = ?""", (address_id,))
+            WHERE address_id = ?;""", (address_id,))
         return cursor.fetchone()
 
     # esta funcion es para obtener un detalle de customer address por su customer id de la base de datos, 
     # se va a usar en el endpoint GET /customer_address/{customer_id}
     @staticmethod
-    def get_by_id(conn: sqlite3.Connection, customer_id: str) -> Optional[sqlite3.Row]:
+    def get_by_customer_id(conn: sqlite3.Connection, customer_id: int) -> list[sqlite3.Row]:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT address_id, address, locality, province, pais, postal_code, notes, customer_id 
             FROM customer_address 
-            WHERE customer_id = ?""", (customer_id,))
-        return cursor.fetchone()
+            WHERE customer_id = ?
+            ORDER BY address_id;""", (customer_id,))
+        return cursor.fetchall()
 
     # esta funcion es para crear una customer_address en la base de datos, 
     # se va a usar
@@ -64,13 +65,13 @@ class CustomerAddressModel:
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO customer_address (address, locality, province, pais, postal_code, notes, customer_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)""", (
+            VALUES (?, ?, ?, ?, ?, ?, ?);""", (
                 customer_address_data["address"],
-                customer_address_data["locality"],
-                customer_address_data["province"],
-                customer_address_data["pais"],
-                customer_address_data["postal_code"],
-                customer_address_data["notes"],
+                customer_address_data.get("locality"),
+                customer_address_data.get("province"),
+                customer_address_data.get("pais"),
+                customer_address_data.get("postal_code"),
+                customer_address_data.get("notes"),
                 customer_address_data["customer_id"]))
         return cursor.lastrowid             
 
@@ -83,13 +84,13 @@ class CustomerAddressModel:
         cursor.execute("""
             UPDATE customer_address
             SET address = ?, locality = ?, province = ?, pais = ?, postal_code = ?, notes = ?, customer_id = ?
-            WHERE address = ? """, (
+            WHERE address_id = ?;""", (
                 customer_address_data["address"],
-                customer_address_data["locality"],
-                customer_address_data["province"],
-                customer_address_data["pais"],
-                customer_address_data["postal_code"],
-                customer_address_data["notes"],
+                customer_address_data.get("locality"),
+                customer_address_data.get("province"),
+                customer_address_data.get("pais"),
+                customer_address_data.get("postal_code"),
+                customer_address_data.get("notes"),
                 customer_address_data["customer_id"],
                 address_id))
         return cursor.rowcount > 0  
@@ -103,5 +104,5 @@ class CustomerAddressModel:
         cursor = conn.cursor()
         cursor.execute("""
             DELETE FROM customer_address 
-            WHERE address = ?""", (address_id,))
+            WHERE address_id = ?;""", (address_id,))
         return cursor.rowcount > 0

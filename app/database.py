@@ -51,7 +51,7 @@ def init_db() -> None:
                 product_subcategory TEXT NULL,
                 product_group TEXT NULL,
                 product_subgroup TEXT NULL,
-                stock INTEGER NOT NULL DEFAULT 0);
+                stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0));
         """)
 
         cursor.execute("""

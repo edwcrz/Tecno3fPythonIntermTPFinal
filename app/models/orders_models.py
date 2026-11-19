@@ -27,7 +27,7 @@ class OrdersModel:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT order_id, customer_id, date, state, communication, payment_method 
-            FROM orders """)
+            FROM orders;""")
         return cursor.fetchall()
 
     @staticmethod
@@ -38,7 +38,7 @@ class OrdersModel:
         cursor.execute("""
             SELECT order_id, customer_id, date, state, communication, payment_method 
             FROM orders 
-            WHERE order_id = ? """, (order_id,))
+            WHERE order_id = ?;""", (order_id,))
         return cursor.fetchone()        
 
     # esta funcion es para crear una orden en la base de datos, 
@@ -50,7 +50,7 @@ class OrdersModel:
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO orders (customer_id, date, state, communication, payment_method)
-            VALUES (?, ?, ?, ?, ?) """, (
+            VALUES (?, ?, ?, ?, ?);""", (
                 order_data["customer_id"],
                 order_data["date"],
                 order_data["state"],
@@ -66,7 +66,7 @@ class OrdersModel:
         cursor.execute("""
             UPDATE orders
             SET customer_id = ?, date = ?, state = ?, communication = ?, payment_method = ?
-            WHERE order_id = ? """, (
+            WHERE order_id = ?;""", (
                 order_data["customer_id"],
                 order_data["date"],
                 order_data["state"],
@@ -82,6 +82,6 @@ class OrdersModel:
         cursor = conn.cursor()
         cursor.execute("""
             DELETE FROM orders 
-            WHERE order_id = ? """, (order_id,))
+            WHERE order_id = ?;""", (order_id,))
         return cursor.rowcount > 0
     

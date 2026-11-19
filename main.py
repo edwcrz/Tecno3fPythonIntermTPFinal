@@ -38,7 +38,7 @@ app.include_router(order_detail_router)
 
 if __name__ = "__main__":
     import uvicorn
-    uvicorn.run("main:app", port=5000, log_level="info", reload=True)
+    config = uvicorn.run("main:app", port=5000, log_level="info", reload=True)
     server = uvicorn.Server(config)
     server.run()
 

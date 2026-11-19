@@ -1,10 +1,10 @@
 import sqlite3
 from fastapi import HTTPException
 
-from app.models.orders import OrdersModel
-from app.models.order_detail import OrderDetailModel
+from app.models.orders_models import OrdersModel
+from app.models.order_detail_models import OrderDetailModel
 
-class OrderService:
+class OrderController:
 
     # CREAR ORDEN
     @staticmethod

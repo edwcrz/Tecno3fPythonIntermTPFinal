@@ -36,7 +36,7 @@ class CustomerModel:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT customer_id, name, nickname, surname, email, instagram, phone, age, gender, likes, notes 
-            FROM customer""")
+            FROM customer;""")
         return cursor.fetchall()
 
     # esta funcion es para obtener un cliente por su id de la base de datos
@@ -46,7 +46,7 @@ class CustomerModel:
         cursor.execute("""
             SELECT customer_id, name, nickname, surname, email, instagram, phone, age, gender, likes, notes 
             FROM customer 
-            WHERE customer_id = ?""", (customer_id,))
+            WHERE customer_id = ?;""", (customer_id,))
         return cursor.fetchone()
 
     # esta funcion es para crear un cliente en la base de datos, se va a usar en el endpoint POST /customer
@@ -57,7 +57,7 @@ class CustomerModel:
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO customer (name, nickname, surname, email, instagram, phone, age, gender, likes, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", (
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""", (
                 customer_data["name"],
                 customer_data.get("nickname"),
                 customer_data.get("surname"),
@@ -78,17 +78,17 @@ class CustomerModel:
         cursor.execute("""
             UPDATE customer
             SET name = ?, nickname = ?, surname = ?, email = ?, instagram = ?, phone = ?, age = ?, gender = ?, likes = ?, notes = ?
-            WHERE customer_id = ?""", (
+            WHERE customer_id = ?;""", (
                 customer_data["name"],
-                customer_data("nickname"),
-                customer_data("surname"),
-                customer_data("email"),
-                customer_data("instagram"),
-                customer_data("phone"),
-                customer_data("age"),
-                customer_data("gender"),
-                customer_data("likes", 0),
-                customer_data("notes"),
+                customer_data.get("nickname"),
+                customer_data.get("surname"),
+                customer_data.get("email"),
+                customer_data.get("instagram"),
+                customer_data.get("phone"),
+                customer_data.get("age"),
+                customer_data.get("gender"),
+                customer_data.get("likes", 0),
+                customer_data.get("notes"),
                 customer_id))
         return cursor.rowcount > 0
 
@@ -98,5 +98,5 @@ class CustomerModel:
         cursor = conn.cursor()
         cursor.execute("""
             DELETE FROM customer 
-            WHERE customer_id = ?""", (customer_id,))
+            WHERE customer_id = ?;""", (customer_id,))
         return cursor.rowcount > 0 

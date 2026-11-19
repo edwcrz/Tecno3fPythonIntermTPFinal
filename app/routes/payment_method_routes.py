@@ -3,7 +3,7 @@ import sqlite3
 from typing import List
 from database import get_db_connection
 
-from app.models.payment_method import PaymentMethodModel
+from app.models.payment_method_models import PaymentMethodModel
 from app.views import PaymentMethodCreate, PaymentMethodResponse, PaymentMethodUpdate
 
 router = APIRouter(prefix="/payment_method", tags=["PaymentMethod"])

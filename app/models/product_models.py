@@ -13,7 +13,7 @@ from typing import Optional
     product_subcategory TEXT NULL,
     product_group TEXT NULL,
     product_subgroup TEXT NULL,
-    stock INTEGER NOT NULL DEFAULT 0);
+    stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0));
 """
 
 # name: str = Field(..., min_length=1, max_length=100, example="Product Name")
@@ -36,7 +36,7 @@ class ProductModel:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT product_id, name, description, ingredients, taste, texture, size, product_category, product_subcategory, product_group, product_subgroup, stock 
-            FROM product""")
+            FROM product;""")
         return cursor.fetchall()
 
     # esta funcion es para obtener un producto por su id de la base de datos, se va a usar en el endpoint GET /product/{product_id}
@@ -46,7 +46,7 @@ class ProductModel:
         cursor.execute("""
             SELECT product_id, name, description, ingredients, taste, texture, size, product_category, product_subcategory, product_group, product_subgroup, stock 
             FROM product 
-            WHERE product_id = ?""", (product_id,))
+            WHERE product_id = ?;""", (product_id,))
         return cursor.fetchone()
 
     # esta funcion es para crear un producto en la base de datos, se va a usar en el endpoint POST /product
@@ -57,7 +57,7 @@ class ProductModel:
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO product (name, description, ingredients, taste, texture, size, product_category, product_subcategory, product_group, product_subgroup, stock)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", (
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""", (
                 product_data["name"],
                 product_data["description"],
                 product_data.get("ingredients"),
@@ -69,7 +69,7 @@ class ProductModel:
                 product_data.get("product_group"),
                 product_data.get("product_subgroup"),
                 product_data["stock",0]))
-        conn.commit()
+        # conn.commit()
         return cursor.lastrowid
 
     # esta funcion es para actualizar un producto en la base de datos, se va a usar en el endpoint PUT /product/{product_id}
@@ -79,7 +79,7 @@ class ProductModel:
         cursor.execute("""
             UPDATE product
             SET name = ?, description = ?, ingredients = ?, taste = ?, texture = ?, size = ?, product_category = ?, product_subcategory = ?, product_group = ?, product_subgroup = ?, stock = ?
-            WHERE product_id = ?""", (
+            WHERE product_id = ?;""", (
                 product_data["name"],
                 product_data["description"],
                 product_data.get("ingredients"),
@@ -90,9 +90,30 @@ class ProductModel:
                 product_data.get("product_subcategory"),
                 product_data.get("product_group"),
                 product_data.get("product_subgroup"),
-                product_data["stock",0],
+                product_data.get("stock",0),
                 product_id))
-        conn.commit()
+        # conn.commit()
+        return cursor.rowcount > 0
+
+    # esta funcion es para decrementar el stock cuando se produce una venta
+    @staticmethod
+    def decrease_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> bool:
+        cursor = conn.cursor()
+        cursor.execute(""" 
+            UPDATE product
+            SET stock = stock - ?
+            WHERE product_id = ? AND stock >= ?;""", (quantity, product_id, quantity))
+        return cursor.rowcount > 0
+
+    # esta funcion es para incrementar el stock cuando se realiza un rollback de una venta o se produjeron productos
+    @staticmethod
+    def increase_stock(conn: sqlite3.Connection,
+        product_id: int, quantity: int) -> bool:
+        cursor = conn.cursor()
+        cursor.execute(""" 
+            UPDATE product
+            SET stock = stock + ?
+            WHERE product_id = ?;""", (quantity, product_id))
         return cursor.rowcount > 0
 
     # esta funcion es para eliminar un producto de la base de datos, se va a usar en el endpoint DELETE /product/{product_id}
@@ -100,8 +121,6 @@ class ProductModel:
     def delete(conn: sqlite3.Connection, product_id: int) -> bool:
         cursor = conn.cursor()
         cursor.execute("""
-            DELETE FROM product 
-            WHERE product_id = ?""", (product_id,))
-        conn.commit()
+            DELETE FROM product
+            WHERE product_id = ?;""", (product_id,))
         return cursor.rowcount > 0
-    
