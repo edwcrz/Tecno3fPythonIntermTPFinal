@@ -1,7 +1,5 @@
 .venv/
 venv/
-Info/
-md/
 .pyc
 .pyd
 .pyo
