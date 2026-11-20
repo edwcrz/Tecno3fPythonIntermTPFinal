@@ -9,8 +9,8 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.database import init_db
 
-from app.routes.product_routes import router as product_router
-from app.routes.product_payment_routes import router as product_payment_router
+from app.routes.product_route import router as product_router
+from app.routes.product_payment_route import router as product_payment_router
 from app.routes.payment_method_route import router as payment_method_router
 from app.routes.customer_route import router as customer_router
 from app.routes.customer_address_route import router as customer_address_router
@@ -25,8 +25,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title= "pasteleria API MVC",
     version= "1.0.0",
-    lifespan= lifespan
-    )
+    lifespan= lifespan)
 
 app.include_router(product_router)
 app.include_router(product_payment_router)
@@ -41,4 +40,3 @@ if __name__ = "__main__":
     config = uvicorn.run("main:app", port=5000, log_level="info", reload=True)
     server = uvicorn.Server(config)
     server.run()
-
