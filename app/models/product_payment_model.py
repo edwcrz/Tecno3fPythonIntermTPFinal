@@ -37,7 +37,7 @@ class ProductPaymentModel:
         return cursor.fetchone()
 
     @staticmethod
-    def get_by_product_and_payment_id(conn: sqlite3.Connection, product_id: int, payment_method_id: int) -> Optional[sqlite3.Row]:
+    def get_by_product_and_payment(conn: sqlite3.Connection, product_id: int, payment_method_id: int) -> Optional[sqlite3.Row]:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT product_payment_id, product_id, payment_method_id, price, currency

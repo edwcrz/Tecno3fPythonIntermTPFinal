@@ -40,13 +40,13 @@ class OrderDetailModel:
         return cursor.fetchone()
 
     @staticmethod
-    def get_by_order_id(conn: sqlite3.Connection, order_id: int) -> Optional[sqlite3.Row]:
+    def get_by_order_id(conn: sqlite3.Connection, order_id: int) -> list[sqlite3.Row]:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT order_detail_id, order_id, product_id, quantity, unit_price
             FROM order_detail
             WHERE order_id = ?;""", (order_id,))
-        return cursor.fetchone()
+        return cursor.fetchall()
 
     # esta funcion es para crear un detalle de la orden en la base de datos, 
     # se va a usar
@@ -92,7 +92,7 @@ class OrderDetailModel:
         return cursor.rowcount > 0
 
     @staticmethod
-    def delete_by_order_id(conn: sqlite3.Connection, order_id: int) -> None:
+    def delete_by_order_id(conn: sqlite3.Connection, order_id: int) -> bool:
         cursor = conn.cursor()
         cursor.execute( """
             DELETE FROM order_detail

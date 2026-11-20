@@ -64,7 +64,10 @@ class ProductModel:
     def create(conn: sqlite3.Connection, product_data: dict) -> int:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO product (name, description, ingredients, taste, texture, size, product_category, product_subcategory, product_group, product_subgroup, stock, reserved_stock)
+            INSERT INTO product (
+                name, description, ingredients, taste, texture,
+                size, product_category, product_subcategory,
+                product_group, product_subgroup, stock, reserved_stock)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""", (
                 product_data["name"],
                 product_data["description"],
@@ -76,19 +79,27 @@ class ProductModel:
                 product_data.get("product_subcategory"),
                 product_data.get("product_group"),
                 product_data.get("product_subgroup"),
-                product_data["stock",0],
-                product_data["reserved_stock",0]))
-        # conn.commit()
+                product_data.get("stock", 0),
+                0))
         return cursor.lastrowid
 
     # esta funcion es para actualizar un producto en la base de datos, se va a usar en el endpoint PUT /product/{product_id}
     @staticmethod
-    def update(conn: sqlite3.Connection, product_id: int, product_data: dict) -> bool:
+    def update(conn: sqlite3.Connection, product_id: int, product_data: dict ) -> bool:
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE product
-            SET name = ?, description = ?, ingredients = ?, taste = ?, texture = ?, size = ?, product_category = ?, product_subcategory = ?, product_group = ?, product_subgroup = ?, stock = ?, reserved_stock = ?
-            WHERE product_id = ?;""", (
+            SET name = ?,
+                description = ?,
+                ingredients = ?,
+                taste = ?,
+                texture = ?,
+                size = ?,
+                product_category = ?,
+                product_subcategory = ?,
+                product_group = ?,
+                product_subgroup = ?
+            WHERE product_id = ?; """, (
                 product_data["name"],
                 product_data["description"],
                 product_data.get("ingredients"),
@@ -99,31 +110,70 @@ class ProductModel:
                 product_data.get("product_subcategory"),
                 product_data.get("product_group"),
                 product_data.get("product_subgroup"),
-                product_data["stock",0],
-                product_data["reserved_stock",0],
-                product_id))
-        # conn.commit()
+                product_id ))
         return cursor.rowcount > 0
 
-    # esta funcion es para decrementar el stock cuando se produce una venta
+
+    # Reserva unidades sin descontar el stock físico.
     @staticmethod
-    def decrease_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> bool:
+    def reserve_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> bool:
+        if quantity <= 0:
+            return False
         cursor = conn.cursor()
-        cursor.execute(""" 
+        cursor.execute("""
             UPDATE product
-            SET stock = stock - ?
-            WHERE product_id = ? AND stock >= ?;""", (quantity, product_id, quantity))
+            SET reserved_stock = reserved_stock + ?
+            WHERE product_id = ? AND (stock - reserved_stock) >= ?;""", (
+                quantity, 
+                product_id, 
+                quantity))
         return cursor.rowcount > 0
 
-    # esta funcion es para incrementar el stock cuando se realiza un rollback de una venta o se produjeron productos
+    # Confirma la venta: descuenta stock físico y libera la reserva.
     @staticmethod
-    def increase_stock(conn: sqlite3.Connection,
-        product_id: int, quantity: int) -> bool:
+    def confirm_reserved_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> bool:
+        if quantity <= 0:
+            return False
         cursor = conn.cursor()
-        cursor.execute(""" 
+        cursor.execute("""
+            UPDATE product
+            SET stock = stock - ?, reserved_stock = reserved_stock - ?
+            WHERE product_id = ? AND stock >= ? AND reserved_stock >= ?; """, (
+                quantity, 
+                quantity, 
+                product_id, 
+                quantity, 
+                quantity))
+        return cursor.rowcount > 0
+
+    # Libera la reserva cuando se cancela un pedido pendiente.
+    @staticmethod
+    def release_reserved_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> bool:
+        if quantity <= 0:
+            return False
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE product
+            SET reserved_stock = reserved_stock - ?
+            WHERE product_id = ? AND reserved_stock >= ?;""", (
+                quantity, 
+                product_id, 
+                quantity))
+        return cursor.rowcount > 0
+
+    # Ingreso de producción o reposición de stock físico.
+    @staticmethod
+    def increase_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> bool:
+        if quantity <= 0:
+            return False
+
+        cursor = conn.cursor()
+        cursor.execute("""
             UPDATE product
             SET stock = stock + ?
-            WHERE product_id = ?;""", (quantity, product_id))
+            WHERE product_id = ?;""", (
+                quantity, 
+                product_id))
         return cursor.rowcount > 0
 
     # esta funcion es para eliminar un producto de la base de datos, se va a usar en el endpoint DELETE /product/{product_id}
@@ -132,5 +182,6 @@ class ProductModel:
         cursor = conn.cursor()
         cursor.execute("""
             DELETE FROM product
-            WHERE product_id = ?;""", (product_id,))
+            WHERE product_id = ?;""", (
+                product_id,))
         return cursor.rowcount > 0
