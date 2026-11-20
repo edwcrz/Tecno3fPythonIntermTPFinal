@@ -13,7 +13,8 @@ from typing import Optional
     product_subcategory TEXT NULL,
     product_group TEXT NULL,
     product_subgroup TEXT NULL,
-    stock INTEGER NOT NULL DEFAULT 0);
+    stock INTEGER NOT NULL DEFAULT 0,
+    reserved_stock INTEGER NOT NULL DEFAULT 0);
 """
 
 class ProductBase(BaseModel):
@@ -28,6 +29,7 @@ class ProductBase(BaseModel):
     product_group: Optional[str] = Field(None, max_length=100, example="Product Group")
     product_subgroup: Optional[str] = Field(None, max_length=100, example="Product Subgroup")
     stock : int = Field(..., ge=0, example=10)
+    reserved_stock : int = Field(..., ge=0, example=2)
 
 class ProductCreate(ProductBase):
     pass

@@ -13,7 +13,8 @@ from typing import Optional
     product_subcategory TEXT NULL,
     product_group TEXT NULL,
     product_subgroup TEXT NULL,
-    stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0));
+    stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
+    reserved_stock INTEGER NOT NULL DEFAULT 0 CHECK (reserved_stock >= 0));
 """
 
 # name: str = Field(..., min_length=1, max_length=100, example="Product Name")
@@ -27,6 +28,7 @@ from typing import Optional
 #   product_group: Optional[str] = Field(None, max_length=100, example="Product Group")
 #   product_subgroup: Optional[str] = Field(None, max_length=100, example="Product Subgroup")
 #   stock : int = Field(..., ge=0, example=10)
+#   reserved_stock : int = Field(..., ge=0, example=10)
 
 class ProductModel:
 
@@ -35,7 +37,10 @@ class ProductModel:
     def get_all(conn: sqlite3.Connection) -> list[sqlite3.Row]:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT product_id, name, description, ingredients, taste, texture, size, product_category, product_subcategory, product_group, product_subgroup, stock 
+            SELECT product_id, name, description, 
+            ingredients, taste, texture, size, 
+            product_category, product_subcategory, product_group, product_subgroup, 
+            stock, reserved_stock
             FROM product;""")
         return cursor.fetchall()
 
@@ -44,7 +49,10 @@ class ProductModel:
     def get_by_id(conn: sqlite3.Connection, product_id: int) -> Optional[sqlite3.Row]:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT product_id, name, description, ingredients, taste, texture, size, product_category, product_subcategory, product_group, product_subgroup, stock 
+            SELECT product_id, name, description, 
+            ingredients, taste, texture, size, 
+            product_category, product_subcategory, product_group, product_subgroup, 
+            stock, reserved_stock
             FROM product 
             WHERE product_id = ?;""", (product_id,))
         return cursor.fetchone()
@@ -56,8 +64,8 @@ class ProductModel:
     def create(conn: sqlite3.Connection, product_data: dict) -> int:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO product (name, description, ingredients, taste, texture, size, product_category, product_subcategory, product_group, product_subgroup, stock)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""", (
+            INSERT INTO product (name, description, ingredients, taste, texture, size, product_category, product_subcategory, product_group, product_subgroup, stock, reserved_stock)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""", (
                 product_data["name"],
                 product_data["description"],
                 product_data.get("ingredients"),
@@ -68,7 +76,8 @@ class ProductModel:
                 product_data.get("product_subcategory"),
                 product_data.get("product_group"),
                 product_data.get("product_subgroup"),
-                product_data["stock",0]))
+                product_data["stock",0],
+                product_data["reserved_stock",0]))
         # conn.commit()
         return cursor.lastrowid
 
@@ -78,7 +87,7 @@ class ProductModel:
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE product
-            SET name = ?, description = ?, ingredients = ?, taste = ?, texture = ?, size = ?, product_category = ?, product_subcategory = ?, product_group = ?, product_subgroup = ?, stock = ?
+            SET name = ?, description = ?, ingredients = ?, taste = ?, texture = ?, size = ?, product_category = ?, product_subcategory = ?, product_group = ?, product_subgroup = ?, stock = ?, reserved_stock = ?
             WHERE product_id = ?;""", (
                 product_data["name"],
                 product_data["description"],
@@ -90,7 +99,8 @@ class ProductModel:
                 product_data.get("product_subcategory"),
                 product_data.get("product_group"),
                 product_data.get("product_subgroup"),
-                product_data.get("stock",0),
+                product_data["stock",0],
+                product_data["reserved_stock",0],
                 product_id))
         # conn.commit()
         return cursor.rowcount > 0

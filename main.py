@@ -11,11 +11,11 @@ from app.database import init_db
 
 from app.routes.product_routes import router as product_router
 from app.routes.product_payment_routes import router as product_payment_router
-from app.routes.payment_method_routes import router as payment_method_router
-from app.routes.customer_routes import router as customer_router
-from app.routes.customer_address_routes import router as customer_address_router
-from app.routes.orders_routes import router as orders_router
-from app.routes.order_detail_routes import router as order_detail_router
+from app.routes.payment_method_route import router as payment_method_router
+from app.routes.customer_route import router as customer_router
+from app.routes.customer_address_route import router as customer_address_router
+from app.routes.orders_route import router as orders_router
+from app.routes.order_detail_route import router as order_detail_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

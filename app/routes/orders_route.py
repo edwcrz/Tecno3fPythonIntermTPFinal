@@ -3,7 +3,7 @@ import sqlite3
 from typing import List
 from database import get_db_connection
 
-from app.models.orders_models import OrdersModel
+from app.models.orders_model import OrdersModel
 from app.views import OrderCreate, OrderResponse, OrderUpdate
 
 router = APIRouter(prefix="/orders", tags=["Orders"])

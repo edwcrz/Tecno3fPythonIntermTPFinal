@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS orders (
     date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     state TEXT NOT NULL DEFAULT 'pending',
     communication TEXT NULL,
-    payment_method TEXT NOT NULL DEFAULT 'efectivo'
+    payment_method_id INTEGER NOT NULL,
 )"""
 
 # class OrderBase(BaseModel):
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS orders (
 #   date: datetime = Field(..., example="2023-01-01 00:00:00")
 #   state: str = Field(..., min_length=1, max_length=100, example="pending")
 #   communication: Optional[str] = Field(None, max_length=200, example="Order Communication")
-#   payment_methond: str = Field(..., min_length=1, max_length=100, example="efectivo")
+#   payment_methond: int = Field(..., ge=1)
 
 class OrdersModel:
 
@@ -26,8 +26,9 @@ class OrdersModel:
     def get_all(conn: sqlite3.Connection) -> list[sqlite3.Row]:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT order_id, customer_id, date, state, communication, payment_method 
-            FROM orders;""")
+            SELECT order_id, customer_id, date, state, communication, payment_method_id
+            FROM orders
+            ORDER BY order_id DESC;""")
         return cursor.fetchall()
 
     @staticmethod
@@ -36,7 +37,7 @@ class OrdersModel:
     def get_by_id(conn: sqlite3.Connection, order_id: int) -> Optional[sqlite3.Row]:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT order_id, customer_id, date, state, communication, payment_method 
+            SELECT order_id, customer_id, date, state, communication, payment_method_id
             FROM orders 
             WHERE order_id = ?;""", (order_id,))
         return cursor.fetchone()        
@@ -49,13 +50,13 @@ class OrdersModel:
     def create(conn: sqlite3.Connection, order_data: dict) -> int:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO orders (customer_id, date, state, communication, payment_method)
+            INSERT INTO orders (customer_id, date, state, communication, payment_method_id)
             VALUES (?, ?, ?, ?, ?);""", (
                 order_data["customer_id"],
                 order_data["date"],
                 order_data["state"],
                 order_data.get("communication"),
-                order_data["payment_method"]))
+                order_data["payment_method_id"]))
         return cursor.lastrowid
 
     # esta funcion es para actualizar una orden en la base de datos, se va a usar
@@ -65,13 +66,13 @@ class OrdersModel:
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE orders
-            SET customer_id = ?, date = ?, state = ?, communication = ?, payment_method = ?
+            SET customer_id = ?, date = ?, state = ?, communication = ?, payment_method_id = ?
             WHERE order_id = ?;""", (
                 order_data["customer_id"],
                 order_data["date"],
                 order_data["state"],
                 order_data.get("communication"),
-                order_data["payment_method"],
+                order_data["payment_method_id"],
                 order_id))
         return cursor.rowcount > 0
 

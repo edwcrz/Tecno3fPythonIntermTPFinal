@@ -3,7 +3,7 @@ import sqlite3
 from typing import List
 from database import get_db_connection
 
-from app.models.product_payment_models import ProductPaymentModel
+from app.models.product_payment_model import ProductPaymentModel
 from app.views import ProductPaymentCreate, ProductPaymentResponse, ProductPaymentUpdate
 
 router = APIRouter(prefix="/product_payment", tags=["ProductPayment"])

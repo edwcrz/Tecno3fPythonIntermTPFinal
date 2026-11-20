@@ -51,8 +51,8 @@ def init_db() -> None:
                 product_subcategory TEXT NULL,
                 product_group TEXT NULL,
                 product_subgroup TEXT NULL,
-                stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0));
-        """)
+                stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
+                reserved_stock INTEGER NOT NULL DEFAULT 0 CHECK (reserved_stock >= 0)); """)
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS payment_method (
@@ -61,8 +61,7 @@ def init_db() -> None:
                 overload decimal(2, 2) NOT NULL DEFAULT 0.00,
                 payment_term INTEGER NOT NULL DEFAULT 0,
                 payment_category TEXT NULL,
-                payment_subcategory TEXT NULL);
-        """)
+                payment_subcategory TEXT NULL); """)
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS product_payment (
@@ -72,8 +71,7 @@ def init_db() -> None:
                 price DECIMAL(10, 2) NOT NULL DEFAULT 0.01,
                 currency TEXT NULL DEFAULT "Pesos",
                 FOREIGN KEY (product_id) REFERENCES product (product_id) ON DELETE RESTRICT,
-                FOREIGN KEY (payment_method_id) REFERENCES payment_method (payment_method_id) ON DELETE RESTRICT);
-        """)
+                FOREIGN KEY (payment_method_id) REFERENCES payment_method (payment_method_id) ON DELETE RESTRICT); """)
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS customer (
@@ -87,8 +85,7 @@ def init_db() -> None:
                 age TEXT NULL,
                 gender TEXT NULL,
                 likes INTEGER NULL DEFAULT 0,
-                notes TEXT NULL);
-        """)
+                notes TEXT NULL); """)
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS customer_address (
@@ -100,8 +97,7 @@ def init_db() -> None:
                 postal_code TEXT NULL,
                 notes TEXT NULL,
                 customer_id INTEGER NOT NULL,
-                FOREIGN KEY (customer_id) REFERENCES customer (customer_id) ON DELETE RESTRICT);
-        """)
+                FOREIGN KEY (customer_id) REFERENCES customer (customer_id) ON DELETE RESTRICT); """)
                 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS orders (
@@ -110,9 +106,9 @@ def init_db() -> None:
                 date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 state TEXT NOT NULL DEFAULT 'pending',
                 communication TEXT NULL,
-                payment_method TEXT NOT NULL DEFAULT 'efectivo',
-                FOREIGN KEY (customer_id) REFERENCES customer (customer_id) ON DELETE RESTRICT);
-        """)
+                payment_method_id INTEGER NOT NULL,
+                FOREIGN KEY (customer_id) REFERENCES customer (customer_id) ON DELETE RESTRICT); """)
+        
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS order_detail (
                 order_detail_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,8 +117,7 @@ def init_db() -> None:
                 quantity INTEGER NOT NULL CHECK (quantity > 0),
                 unit_price REAL NOT NULL CHECK (unit_price >= 0),
                 FOREIGN KEY (order_id) REFERENCES orders (order_id) ON DELETE CASCADE,
-                FOREIGN KEY (product_id) REFERENCES product (product_id) ON DELETE RESTRICT);
-        """)
+                FOREIGN KEY (product_id) REFERENCES product (product_id) ON DELETE RESTRICT); """)
         conn.commit()
 
 if __name__ == "__main__":

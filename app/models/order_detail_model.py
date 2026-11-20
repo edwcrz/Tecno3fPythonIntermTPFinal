@@ -80,7 +80,6 @@ class OrderDetailModel:
                 order_detail_id))
         return cursor.rowcount > 0  
             
-
     # esta funcion es para eliminar un detalle de orden en la base de datos, 
     # se va a usar
     # va a recibir el id del detalle de orden a actualizar

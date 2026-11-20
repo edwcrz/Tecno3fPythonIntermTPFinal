@@ -1,8 +1,27 @@
+### order_controller
+
+"""
+No debe ejecutar SQL directamente: para eso utiliza los Models. 
+Su responsabilidad es aplicar las reglas comerciales, controlar el stock y administrar las transacciones.
+"""
+
+"""
+El pedido se crea como pending.
+Se reserva stock al crear el pedido.
+El precio se obtiene de product_payment.
+El recargo de payment_method ya está incluido en ese precio.
+El medio de pago es único para todo el pedido.
+La dirección de entrega se guarda directamente en orders.
+Al confirmar, se convierte la reserva en salida de inventario y el pedido pasa a sold.
+Si falla cualquier operación, se revierte toda la transacción.
+
+"""
+
 import sqlite3
 from fastapi import HTTPException
 
-from app.models.orders_models import OrdersModel
-from app.models.order_detail_models import OrderDetailModel
+from app.models.orders_model import OrdersModel
+from app.models.order_detail_model import OrderDetailModel
 
 class OrderController:
 

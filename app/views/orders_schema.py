@@ -16,7 +16,7 @@ class OrderBase(BaseModel):
     date: datetime = Field(..., example="2023-01-01 00:00:00")
     state: str = Field(..., min_length=1, max_length=100, example="pending")
     communication: Optional[str] = Field(None, max_length=200, example="Order Communication")
-    payment_methond: str = Field(..., min_length=1, max_length=100, example="efectivo")
+    payment_methond: int = Field(..., ge=1)
         
 class OrderCreate(OrderBase):
     pass
