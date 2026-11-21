@@ -19,7 +19,7 @@ from app.routes.order_detail_route import router as order_detail_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db
+    init_db()
     yield
 
 app = FastAPI(
@@ -37,6 +37,6 @@ app.include_router(order_detail_router)
 
 if __name__ == "__main__":
     import uvicorn
-    config = uvicorn.run("main:app", port=5000, log_level="info", reload=True)
+    config = uvicorn.run("main:app", port=8000, log_level="info", reload=True)
     server = uvicorn.Server(config)
     server.run()
