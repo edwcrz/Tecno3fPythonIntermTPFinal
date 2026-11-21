@@ -1,4 +1,5 @@
 """
+config.py en /frontend
 anotaciones en clase
 config base
 Theme Mode : system toma el tema del sistema
@@ -21,7 +22,7 @@ THEME_MODE = "System"
 COLOR_THEME = "dark-blue"
 
 COLORS = {
-    "bg_card": "#1e293b",
+    "bg_card": ("#f1f5f9", "#1e293b"),
     "primary": "#3b82f6",
     "primary_hover": "#2563eb",
     "success": "#10b981",
@@ -34,5 +35,5 @@ COLORS = {
     "cancel_hover": "#475569",
     "status_ok": "#10b981",
     "status_err": "#ef4444",
-    "muted_text": "#94a3b8"
+    "muted_text": ("#64748b", "#94a3b8"),
 }

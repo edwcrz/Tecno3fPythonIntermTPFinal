@@ -1,4 +1,5 @@
 """
+/frontend/views/product_view.py
 anotaciones en clase
 que es lo que el usuario ve
 no lo que va a mandar

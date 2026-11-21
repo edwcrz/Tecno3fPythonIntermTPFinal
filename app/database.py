@@ -1,3 +1,6 @@
+"""
+/app/database.py
+"""
 import sqlite3
 from typing import Generator
 #   """ Control del flujo de ejecución: Cuando una función ejecuta un yield, 
@@ -58,7 +61,7 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS payment_method (
                 payment_method_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 method_name TEXT NOT NULL DEFAULT "Efectivo",
-                overload decimal(2, 2) NOT NULL DEFAULT 0.00,
+                overload DECIMAL(2, 2) NOT NULL DEFAULT 0.00,
                 payment_term INTEGER NOT NULL DEFAULT 0,
                 payment_category TEXT NULL,
                 payment_subcategory TEXT NULL); """)
@@ -107,6 +110,7 @@ def init_db() -> None:
                 state TEXT NOT NULL DEFAULT 'pending',
                 communication TEXT NULL,
                 payment_method_id INTEGER NOT NULL,
+                total DECIMAL(10,2) NOT NULL DEFAULT 0.01,
                 FOREIGN KEY (customer_id) REFERENCES customer (customer_id) ON DELETE RESTRICT); """)
         
         cursor.execute("""
@@ -116,6 +120,7 @@ def init_db() -> None:
                 product_id INTEGER NOT NULL,
                 quantity INTEGER NOT NULL CHECK (quantity > 0),
                 unit_price REAL NOT NULL CHECK (unit_price >= 0),
+                subtotal DECIMAL(10,2) NOT NULL DEFAULT 0.01,
                 FOREIGN KEY (order_id) REFERENCES orders (order_id) ON DELETE CASCADE,
                 FOREIGN KEY (product_id) REFERENCES product (product_id) ON DELETE RESTRICT); """)
         conn.commit()

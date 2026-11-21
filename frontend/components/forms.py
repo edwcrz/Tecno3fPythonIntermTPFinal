@@ -8,6 +8,7 @@ formulario principal para cargar datos del producto
 """
 
 """
+/frontend/components/forms.py
 Formulario interactivo para creación y edición de productos. 
 Realiza validaciones locales de datos numéricos y conmuta su interfaz entre los modos de inserción y actualización.
 """

@@ -18,21 +18,11 @@ class ProductPaymentBase(BaseModel):
     
 class ProductPaymentCreate(ProductPaymentBase):
     pass
-    # va a heredar todos los campos de ProductPaymentBase, es para crear un pago de producto, no necesita el product_payment_id porque se va a generar automaticamente
-    # se usa en la validación del cuerpo de los post, cuando creamos un pago de producto vamos a validar que venga con este formato de datos
-    # el pass no agrega nada adicional para que continue de manera normal, es solo para que no de error de sintaxis, porque no tiene ningun metodo ni atributo adicional
 
 class ProductPaymentUpdate(ProductPaymentBase):
     pass
-    # va a heredar todos los campos de ProductPaymentBase, es para actualizar un pago de producto, no necesita el product_payment_id porque se va a generar automaticamente
-    # se usa en la validación del cuerpo de los put, cuando actualizamos un pago de producto vamos a validar que venga con este formato de datos
-    # el pass no agrega nada adicional para que continue de manera normal, es solo para que no de error de sintaxis, porque no tiene ningun metodo ni atributo adicional
 
 class ProductPaymentResponse(ProductPaymentBase):
     product_payment_id: int
-    # no hace falta validar con el field porque es un campo que se va a generar automaticamente, no es un campo que venga del cliente, es un campo que viene de la base de datos
-    # viene de la base de datos, es el id del producto, es un campo que se va a generar automaticamente, no es un campo que venga del cliente, es un campo que viene de la base de datos
     class Config:
         from_attributes = True
-        # sirve para que pydantic pueda trabajar con objetos de tipo ORM, y no de diccionarios, si no se pone esto, pydantic no va a poder trabajar con objetos de tipo ORM, y va a dar error al intentar convertir un objeto de tipo ORM a un objeto de tipo Pydantic
-        # si no se pone esta linea, pydantic no va a poder trabajar con objetos de tipo ORM, y va a dar error al intentar convertir un objeto de tipo ORM a un objeto de tipo Pydantic

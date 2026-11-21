@@ -1,3 +1,7 @@
+"""
+/app/models/product_model.py
+"""
+
 import sqlite3
 from typing import Optional
 
