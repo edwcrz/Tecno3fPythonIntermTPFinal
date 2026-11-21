@@ -1,3 +1,7 @@
+"""
+/app/models/product_payment_model.py
+"""
+
 import sqlite3
 from typing import Optional
 
@@ -7,7 +11,7 @@ CREATE TABLE IF NOT EXISTS product_payment (
     product_id INTEGER NOT NULL,
     payment_method_id INTEGER NOT NULL,
     price DECIMAL(10, 2) NOT NULL DEFAULT 0.01,
-    currency TEXT NULL DEFAULT "Pesos",
+    currency TEXT NULL DEFAULT "Pesos");
 """
         
 # class ProductPaymentBase(BaseModel):
@@ -21,20 +25,17 @@ class ProductPaymentModel:
     # esta funcion es para obtener todos los productos de la base de datos, se va a usar en el endpoint GET /products
     @staticmethod
     def get_all(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT product_id, payment_method_id, price, currency 
-            FROM product_payment;""")
-        return cursor.fetchall()
+        return conn.execute("""
+            SELECT product_payment_id, product_id, payment_method_id, price, currency
+            FROM product_payment
+            ORDER BY product_payment_id;""").fetchall()
 
     @staticmethod
     def get_by_id(conn: sqlite3.Connection, product_payment_id: int) -> Optional[sqlite3.Row]:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT product_id, payment_method_id, price, currency 
-            FROM product_payment 
-            WHERE product_payment_id = ?;""", (product_payment_id,))
-        return cursor.fetchone()
+        return conn.execute("""
+            SELECT product_payment_id, product_id, payment_method_id, price, currency
+            FROM product_payment
+            WHERE product_payment_id = ?;""", (product_payment_id,)).fetchone()
 
     @staticmethod
     def get_by_product_and_payment(conn: sqlite3.Connection, product_id: int, payment_method_id: int) -> Optional[sqlite3.Row]:
@@ -79,4 +80,20 @@ class ProductPaymentModel:
             WHERE product_payment_id = ?;""", (product_payment_id,))
         return cursor.rowcount > 0
 
-    
+    @staticmethod
+    def get_by_product(conn: sqlite3.Connection, product_id: int) -> Optional[sqlite3.Row]:
+        return conn.execute("""
+            SELECT product_payment_id, product_id, payment_method_id, price, currency
+            FROM product_payment
+            WHERE product_id = ?
+            ORDER BY product_payment_id LIMIT 1;""", (product_id,)).fetchone()
+
+    @staticmethod
+    def delete_by_product(conn: sqlite3.Connection, product_id: int) -> None:
+        conn.execute("DELETE FROM product_payment WHERE product_id = ?;", (product_id,))
+
+    @staticmethod
+    def count_by_method(conn: sqlite3.Connection, payment_method_id: int) -> int:
+        return conn.execute(
+            "SELECT COUNT(*) AS n FROM product_payment WHERE payment_method_id = ?;",
+            (payment_method_id,)).fetchone()["n"]

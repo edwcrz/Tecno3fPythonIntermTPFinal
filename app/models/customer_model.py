@@ -1,61 +1,44 @@
+"""
+/app/models/customer_model.py
+Acceso a datos de la tabla customer. Solo SQL: las reglas viven en CustomerController.
+"""
 import sqlite3
 from typing import Optional
 
-"""
-CREATE TABLE IF NOT EXISTS customer (
-    customer_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    nickname TEXT NULL,
-    surname TEXT NULL,
-    email TEXT NULL,
-    instagram TEXT NULL,
-    phone TEXT NULL,
-    age TEXT NULL,
-    gender TEXT NULL,
-    likes INTEGER NULL DEFAULT 0,
-    notes TEXT NULL);   
-"""
+# Tabla (ver database.py):
+#   customer_id INTEGER PRIMARY KEY AUTOINCREMENT,
+#   name TEXT NOT NULL, nickname TEXT NULL, surname TEXT NULL,
+#   email TEXT NULL, instagram TEXT NULL, phone TEXT NULL,
+#   age TEXT NULL, gender TEXT NULL,
+#   likes INTEGER NULL DEFAULT 0, notes TEXT NULL
+#
+# Los schemas de validación están en /app/views/customer_schema.py
 
-#class CustomerBase(BaseModel):
-#  name: str = Field(..., min_length=1, max_length=100, example="Customer Name")
-#  nickname: Optional[str] = Field(None, max_length=100, example="Customer Nickname")
-#  surname: Optional[str] = Field(None, max_length=100, example="Customer Surname")
-#  email: Optional[str] = Field(None, max_length=100, example="Customer Email")
-#  instagram: Optional[str] = Field(None, max_length=100, example="Customer Instagram")
-#  phone: Optional[str] = Field(None, max_length=12, example="Customer Phone")
-#  age: Optional[int] = Field(None, le=150, example="Customer Age")
-#  gender: Optional[str] = Field(None, max_length=100, example="Customer Gender")
-#  likes: int = Field(None, ge=0, example=0)   
-#  notes: Optional[str] = Field(None, max_length=200, example="Customer Notes  ")
+COLUMNS = "customer_id, name, nickname, surname, email, instagram, phone, age, gender, likes, notes"
 
 class CustomerModel:
 
-    # esta funcion es para obtener todos los clientes de la base de datos, se va a usar en el endpoint GET /customer
+    # Todos los clientes (GET /customer)
     @staticmethod
     def get_all(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT customer_id, name, nickname, surname, email, instagram, phone, age, gender, likes, notes 
-            FROM customer;""")
-        return cursor.fetchall()
+        return conn.execute(f"SELECT {COLUMNS} FROM customer ORDER BY customer_id;").fetchall()
 
-    # esta funcion es para obtener un cliente por su id de la base de datos
+    # Un cliente por id
     @staticmethod
     def get_by_id(conn: sqlite3.Connection, customer_id: int) -> Optional[sqlite3.Row]:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT customer_id, name, nickname, surname, email, instagram, phone, age, gender, likes, notes 
-            FROM customer 
-            WHERE customer_id = ?;""", (customer_id,))
-        return cursor.fetchone()
+        return conn.execute(
+            f"SELECT {COLUMNS} FROM customer WHERE customer_id = ?;", (customer_id,)).fetchone()
 
-    # esta funcion es para crear un cliente en la base de datos, se va a usar en el endpoint POST /customer
-    # va a recibir un diccionario con los datos del cliente, y va a devolver el id del cliente creado, 
-    # para eso vamos a usar el metodo lastrowid del cursor, que devuelve el id del ultimo registro insertado
+    # Un cliente por email (sin distinguir mayúsculas). Lo usa el controller para evitar duplicados.
+    @staticmethod
+    def get_by_email(conn: sqlite3.Connection, email: str) -> Optional[sqlite3.Row]:
+        return conn.execute(
+            f"SELECT {COLUMNS} FROM customer WHERE lower(email) = lower(?);", (email,)).fetchone()
+
+    # Crea un cliente y devuelve su id (lastrowid = id del último registro insertado)
     @staticmethod
     def create(conn: sqlite3.Connection, customer_data: dict) -> int:
-        cursor = conn.cursor()
-        cursor.execute("""
+        cursor = conn.execute("""
             INSERT INTO customer (name, nickname, surname, email, instagram, phone, age, gender, likes, notes)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""", (
                 customer_data["name"],
@@ -70,14 +53,13 @@ class CustomerModel:
                 customer_data.get("notes")))
         return cursor.lastrowid
 
-    # esta funcion es para actualizar un cliente en la base de datos, se va a usar
-    # va a recibir el id del cliente a actualizar y un diccionario con los nuevos datos
+    # Actualiza un cliente. Devuelve True si existía.
     @staticmethod
     def update(conn: sqlite3.Connection, customer_id: int, customer_data: dict) -> bool:
-        cursor = conn.cursor()
-        cursor.execute("""
+        cursor = conn.execute("""
             UPDATE customer
-            SET name = ?, nickname = ?, surname = ?, email = ?, instagram = ?, phone = ?, age = ?, gender = ?, likes = ?, notes = ?
+            SET name = ?, nickname = ?, surname = ?, email = ?, instagram = ?,
+                phone = ?, age = ?, gender = ?, likes = ?, notes = ?
             WHERE customer_id = ?;""", (
                 customer_data["name"],
                 customer_data.get("nickname"),
@@ -92,11 +74,9 @@ class CustomerModel:
                 customer_id))
         return cursor.rowcount > 0
 
-    # esta funcion es para eliminar un cliente de la base de datos, se va a usar
+    # Elimina un cliente. Devuelve True si existía.
+    # Con direcciones o pedidos la FK lo rechaza (RESTRICT); el controller lo previene antes.
     @staticmethod
     def delete(conn: sqlite3.Connection, customer_id: int) -> bool:
-        cursor = conn.cursor()
-        cursor.execute("""
-            DELETE FROM customer 
-            WHERE customer_id = ?;""", (customer_id,))
-        return cursor.rowcount > 0 
+        cursor = conn.execute("DELETE FROM customer WHERE customer_id = ?;", (customer_id,))
+        return cursor.rowcount > 0

@@ -1,3 +1,9 @@
+"""
+/app/models/CustomerAddressModel
+Acceso a datos de la tabla customer_address. Solo SQL: las reglas viven en CustomerAddressController.
+
+"""
+
 import sqlite3
 from typing import Optional
 
@@ -22,48 +28,51 @@ CREATE TABLE IF NOT EXISTS customer_address (
 #   notes: Optional[str] = Field(None, max_length=200, example="Customer Notes")
 #   customer_id: int = Field(..., example=1)
 
+ # Tabla (ver database.py):
+#   address_id INTEGER PRIMARY KEY AUTOINCREMENT,
+#   address TEXT NOT NULL, locality TEXT NULL, province TEXT NULL,
+#   pais TEXT NULL, postal_code TEXT NULL, notes TEXT NULL,
+#   customer_id INTEGER NOT NULL (FK a customer, ON DELETE RESTRICT)
+
+COLUMNS = "address_id, address, locality, province, pais, postal_code, notes, customer_id"
+
 class CustomerAddressModel:
 
-    # esta funcion es para obtener todos los detalles de customer adddress de la base de datos, 
-    # se va a usar en el endpoint GET /customer_address
+    # Todas las direcciones (GET /customer_address)
     @staticmethod
     def get_all(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT address_id, address, locality, province, pais, postal_code, notes, customer_id 
-            FROM customer_address;""")
-        return cursor.fetchall()
-    
-    # esta funcion es para obtener un detalle de customer address por su id de la base de datos, 
-    # se va a usar en el endpoint GET /customer_address/{address_id}
+        return conn.execute(
+            f"SELECT {COLUMNS} FROM customer_address ORDER BY address_id;").fetchall()
+
+    # Una dirección por su id
     @staticmethod
     def get_by_id(conn: sqlite3.Connection, address_id: int) -> Optional[sqlite3.Row]:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT address_id, address, locality, province, pais, postal_code, notes, customer_id 
-            FROM customer_address 
-            WHERE address_id = ?;""", (address_id,))
-        return cursor.fetchone()
+        return conn.execute(
+            f"SELECT {COLUMNS} FROM customer_address WHERE address_id = ?;", (address_id,)).fetchone()
 
-    # esta funcion es para obtener un detalle de customer address por su customer id de la base de datos, 
-    # se va a usar en el endpoint GET /customer_address/{customer_id}
+    # Direcciones de un cliente
     @staticmethod
     def get_by_customer_id(conn: sqlite3.Connection, customer_id: int) -> list[sqlite3.Row]:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT address_id, address, locality, province, pais, postal_code, notes, customer_id 
-            FROM customer_address 
-            WHERE customer_id = ?
-            ORDER BY address_id;""", (customer_id,))
-        return cursor.fetchall()
+        return conn.execute(
+            f"SELECT {COLUMNS} FROM customer_address WHERE customer_id = ? ORDER BY address_id;",
+            (customer_id,)).fetchall()
 
-    # esta funcion es para crear una customer_address en la base de datos, 
-    # se va a usar
-    # va a recibir un diccionario con los nuevos datos
+    # Alias: los controllers usan este nombre
+    @staticmethod
+    def get_by_customer(conn: sqlite3.Connection, customer_id: int) -> list[sqlite3.Row]:
+        return CustomerAddressModel.get_by_customer_id(conn, customer_id)
+
+    # Cantidad de direcciones de un cliente
+    @staticmethod
+    def count_by_customer(conn: sqlite3.Connection, customer_id: int) -> int:
+        return conn.execute(
+            "SELECT COUNT(*) AS n FROM customer_address WHERE customer_id = ?;",
+            (customer_id,)).fetchone()["n"]
+
+    # Crea una dirección y devuelve su id
     @staticmethod
     def create(conn: sqlite3.Connection, customer_address_data: dict) -> int:
-        cursor = conn.cursor()
-        cursor.execute("""
+        cursor = conn.execute("""
             INSERT INTO customer_address (address, locality, province, pais, postal_code, notes, customer_id)
             VALUES (?, ?, ?, ?, ?, ?, ?);""", (
                 customer_address_data["address"],
@@ -73,17 +82,15 @@ class CustomerAddressModel:
                 customer_address_data.get("postal_code"),
                 customer_address_data.get("notes"),
                 customer_address_data["customer_id"]))
-        return cursor.lastrowid             
+        return cursor.lastrowid
 
-    # esta funcion es para actualizar una customer_address en la base de datos, 
-    # se va a usar
-    # va a recibir el address_id a actualizar y un diccionario con los nuevos datos    
+    # Actualiza una dirección. Devuelve True si existía.
     @staticmethod
     def update(conn: sqlite3.Connection, address_id: int, customer_address_data: dict) -> bool:
-        cursor = conn.cursor()
-        cursor.execute("""
+        cursor = conn.execute("""
             UPDATE customer_address
-            SET address = ?, locality = ?, province = ?, pais = ?, postal_code = ?, notes = ?, customer_id = ?
+            SET address = ?, locality = ?, province = ?, pais = ?, postal_code = ?,
+                notes = ?, customer_id = ?
             WHERE address_id = ?;""", (
                 customer_address_data["address"],
                 customer_address_data.get("locality"),
@@ -93,16 +100,15 @@ class CustomerAddressModel:
                 customer_address_data.get("notes"),
                 customer_address_data["customer_id"],
                 address_id))
-        return cursor.rowcount > 0  
-               
-    # esta funcion es para borrar una customer_address en la base de datos, 
-    # se va a usar
-    # va a recibir el address_id a borrar
-    @staticmethod
-    # esta funcion es para eliminar una orden de la base de datos, se va a usar
-    def delete(conn: sqlite3.Connection, address_id: str) -> bool:
-        cursor = conn.cursor()
-        cursor.execute("""
-            DELETE FROM customer_address 
-            WHERE address_id = ?;""", (address_id,))
         return cursor.rowcount > 0
+
+    # Elimina una dirección. Devuelve True si existía.
+    @staticmethod
+    def delete(conn: sqlite3.Connection, address_id: int) -> bool:
+        cursor = conn.execute("DELETE FROM customer_address WHERE address_id = ?;", (address_id,))
+        return cursor.rowcount > 0
+
+    # Elimina todas las direcciones de un cliente (lo usa CustomerController.delete)
+    @staticmethod
+    def delete_by_customer(conn: sqlite3.Connection, customer_id: int) -> None:
+        conn.execute("DELETE FROM customer_address WHERE customer_id = ?;", (customer_id,))

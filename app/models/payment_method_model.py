@@ -1,3 +1,6 @@
+"""
+/app/models/payment_method_model.py
+"""
 import sqlite3
 from typing import Optional
 
@@ -7,7 +10,7 @@ CREATE TABLE IF NOT EXISTS payment_method (
     method_name TEXT NOT NULL DEFAULT "Efectivo",
     overload decimal(2, 2) NOT NULL DEFAULT 0.00,
     payment_term INTEGER NOT NULL DEFAULT 0,
-    payment_category TEXT NULL),
+    payment_category TEXT NULL,
     payment_subcategory TEXT NULL);
 """
 
@@ -73,4 +76,12 @@ class PaymentMethodModel:
             DELETE FROM payment_method 
             WHERE payment_method_id = ?;""", (payment_method_id,))
         return cursor.rowcount > 0
-    
+    @staticmethod
+
+    def exists_name(conn: sqlite3.Connection, method_name: str, exclude_id: int | None = None) -> bool:
+        row = conn.execute("""
+            SELECT 1 
+            FROM payment_method
+            WHERE lower(method_name) = lower(?) AND payment_method_id != ?;""",
+            (method_name, exclude_id or 0)).fetchone()
+        return row is not None

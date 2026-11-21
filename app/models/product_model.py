@@ -1,3 +1,5 @@
+# ProductModel
+
 """
 /app/models/product_model.py
 """
@@ -36,156 +38,68 @@ from typing import Optional
 
 class ProductModel:
 
-    # esta funcion es para obtener todos los productos de la base de datos, se va a usar en el endpoint GET /product
     @staticmethod
-    def get_all(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT product_id, name, description, 
-            ingredients, taste, texture, size, 
-            product_category, product_subcategory, product_group, product_subgroup, 
-            stock, reserved_stock
-            FROM product;""")
-        return cursor.fetchall()
+    def exists_name_size(conn, name: str, size: str, exclude_id: int | None = None) -> bool:
+        row = conn.execute(
+            "SELECT 1 FROM product WHERE lower(name) = lower(?) AND lower(size) = lower(?) "
+            "AND product_id != ?;", (name, size, exclude_id or 0)).fetchone()
+        return row is not None
 
-    # esta funcion es para obtener un producto por su id de la base de datos, se va a usar en el endpoint GET /product/{product_id}
+    # PaymentMethodModel
     @staticmethod
-    def get_by_id(conn: sqlite3.Connection, product_id: int) -> Optional[sqlite3.Row]:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT product_id, name, description, 
-            ingredients, taste, texture, size, 
-            product_category, product_subcategory, product_group, product_subgroup, 
-            stock, reserved_stock
-            FROM product 
-            WHERE product_id = ?;""", (product_id,))
-        return cursor.fetchone()
+    def exists_name(conn, method_name: str, exclude_id: int | None = None) -> bool:
+        row = conn.execute(
+            "SELECT 1 FROM payment_method WHERE lower(method_name) = lower(?) "
+            "AND payment_method_id != ?;", (method_name, exclude_id or 0)).fetchone()
+        return row is not None
 
-    # esta funcion es para crear un producto en la base de datos, se va a usar en el endpoint POST /product
-    # va a recibir un diccionario con los datos del producto, y va a devolver el id del producto creado, 
-    # para eso vamos a usar el metodo lastrowid del cursor, que devuelve el id del ultimo registro insertado
-    @staticmethod   
-    def create(conn: sqlite3.Connection, product_data: dict) -> int:
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO product (
-                name, description, ingredients, taste, texture,
-                size, product_category, product_subcategory,
-                product_group, product_subgroup, stock, reserved_stock)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""", (
-                product_data["name"],
-                product_data["description"],
-                product_data.get("ingredients"),
-                product_data.get("taste"),
-                product_data.get("texture"),
-                product_data["size"],
-                product_data["product_category"],
-                product_data.get("product_subcategory"),
-                product_data.get("product_group"),
-                product_data.get("product_subgroup"),
-                product_data.get("stock", 0),
-                0))
-        return cursor.lastrowid
-
-    # esta funcion es para actualizar un producto en la base de datos, se va a usar en el endpoint PUT /product/{product_id}
+    # ProductPaymentModel
     @staticmethod
-    def update(conn: sqlite3.Connection, product_id: int, product_data: dict ) -> bool:
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE product
-            SET name = ?,
-                description = ?,
-                ingredients = ?,
-                taste = ?,
-                texture = ?,
-                size = ?,
-                product_category = ?,
-                product_subcategory = ?,
-                product_group = ?,
-                product_subgroup = ?
-            WHERE product_id = ?; """, (
-                product_data["name"],
-                product_data["description"],
-                product_data.get("ingredients"),
-                product_data.get("taste"),
-                product_data.get("texture"),
-                product_data["size"],
-                product_data["product_category"],
-                product_data.get("product_subcategory"),
-                product_data.get("product_group"),
-                product_data.get("product_subgroup"),
-                product_id ))
-        return cursor.rowcount > 0
+    def get_by_product(conn, product_id: int):
+        return conn.execute("SELECT * FROM product_payment WHERE product_id = ?;", (product_id,)).fetchone()
 
-
-    # Reserva unidades sin descontar el stock físico.
     @staticmethod
-    def reserve_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> bool:
-        if quantity <= 0:
-            return False
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE product
-            SET reserved_stock = reserved_stock + ?
-            WHERE product_id = ? AND (stock - reserved_stock) >= ?;""", (
-                quantity, 
-                product_id, 
-                quantity))
-        return cursor.rowcount > 0
+    def delete_by_product(conn, product_id: int) -> None:
+        conn.execute("DELETE FROM product_payment WHERE product_id = ?;", (product_id,))
 
-    # Confirma la venta: descuenta stock físico y libera la reserva.
     @staticmethod
-    def confirm_reserved_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> bool:
-        if quantity <= 0:
-            return False
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE product
-            SET stock = stock - ?, reserved_stock = reserved_stock - ?
-            WHERE product_id = ? AND stock >= ? AND reserved_stock >= ?; """, (
-                quantity, 
-                quantity, 
-                product_id, 
-                quantity, 
-                quantity))
-        return cursor.rowcount > 0
+    def count_by_method(conn, payment_method_id: int) -> int:
+        return conn.execute("SELECT COUNT(*) AS n FROM product_payment WHERE payment_method_id = ?;",
+                            (payment_method_id,)).fetchone()["n"]
 
-    # Libera la reserva cuando se cancela un pedido pendiente.
+    # CustomerModel
     @staticmethod
-    def release_reserved_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> bool:
-        if quantity <= 0:
-            return False
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE product
-            SET reserved_stock = reserved_stock - ?
-            WHERE product_id = ? AND reserved_stock >= ?;""", (
-                quantity, 
-                product_id, 
-                quantity))
-        return cursor.rowcount > 0
+    def get_by_email(conn, email: str):
+        return conn.execute("SELECT * FROM customer WHERE lower(email) = lower(?);", (email,)).fetchone()
 
-    # Ingreso de producción o reposición de stock físico.
+    # CustomerAddressModel
     @staticmethod
-    def increase_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> bool:
-        if quantity <= 0:
-            return False
+    def get_by_customer(conn, customer_id: int):
+        return conn.execute("SELECT * FROM customer_address WHERE customer_id = ? ORDER BY address_id;",
+                            (customer_id,)).fetchall()
 
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE product
-            SET stock = stock + ?
-            WHERE product_id = ?;""", (
-                quantity, 
-                product_id))
-        return cursor.rowcount > 0
-
-    # esta funcion es para eliminar un producto de la base de datos, se va a usar en el endpoint DELETE /product/{product_id}
     @staticmethod
-    def delete(conn: sqlite3.Connection, product_id: int) -> bool:
-        cursor = conn.cursor()
-        cursor.execute("""
-            DELETE FROM product
-            WHERE product_id = ?;""", (
-                product_id,))
-        return cursor.rowcount > 0
+    def count_by_customer(conn, customer_id: int) -> int:
+        return conn.execute("SELECT COUNT(*) AS n FROM customer_address WHERE customer_id = ?;",
+                            (customer_id,)).fetchone()["n"]
+
+    @staticmethod
+    def delete_by_customer(conn, customer_id: int) -> None:
+        conn.execute("DELETE FROM customer_address WHERE customer_id = ?;", (customer_id,))
+
+    # OrderModel (agregar) y BORRAR get_customer y count_addresses, que ahora viven en CustomerController
+    @staticmethod
+    def count_by_customer(conn, customer_id: int) -> int:
+        return conn.execute("SELECT COUNT(*) AS n FROM orders WHERE customer_id = ?;",
+                            (customer_id,)).fetchone()["n"]
+
+    @staticmethod
+    def count_pending_by_customer(conn, customer_id: int) -> int:
+        return conn.execute("SELECT COUNT(*) AS n FROM orders WHERE customer_id = ? AND state = 'pending';",
+                            (customer_id,)).fetchone()["n"]
+
+    # OrderDetailModel (agregar)
+    @staticmethod
+    def count_by_product(conn, product_id: int) -> int:
+        return conn.execute("SELECT COUNT(*) AS n FROM order_detail WHERE product_id = ?;",
+                            (product_id,)).fetchone()["n"]
