@@ -14,7 +14,7 @@ from app.routes.product_payment_route import router as product_payment_router
 from app.routes.payment_method_route import router as payment_method_router
 from app.routes.customer_route import router as customer_router
 from app.routes.customer_address_route import router as customer_address_router
-from app.routes.order_route import router as orders_router
+from app.routes.order_route import router as order_router
 from app.routes.order_detail_route import router as order_detail_router
 
 @asynccontextmanager
@@ -32,7 +32,7 @@ app.include_router(product_payment_router)
 app.include_router(payment_method_router)
 app.include_router(customer_router)
 app.include_router(customer_address_router)
-app.include_router(orders_router)
+app.include_router(order_router)
 app.include_router(order_detail_router)
 
 if __name__ == "__main__":

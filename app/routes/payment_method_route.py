@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 import sqlite3
 from typing import List
-from database import get_db_connection
+from app.database import get_db_connection
 
 from app.models.payment_method_model import PaymentMethodModel
 from app.views import PaymentMethodCreate, PaymentMethodResponse, PaymentMethodUpdate

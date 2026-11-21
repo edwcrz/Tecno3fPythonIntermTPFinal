@@ -5,6 +5,7 @@ captura posibles errores de integridad relacional al intentar eliminar clientes 
 """
 import customtkinter as ctk
 from tkinter import messagebox
+
 from frontend.services.customer_service import CustomerService
 from frontend.config import COLORS
 

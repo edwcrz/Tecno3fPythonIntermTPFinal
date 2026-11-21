@@ -20,8 +20,8 @@ class ProductCard(ctk.CTkFrame):
         master,
         product: Dict,
         on_edit: Callable[[Dict], None],
-        on_delete: Callable[[int], None]
-    ):
+        on_delete: Callable[[int], None]):
+        
         super().__init__(master, corner_radius=8, fg_color=COLORS["bg_card"])
         self.product = product
 

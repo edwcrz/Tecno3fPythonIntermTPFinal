@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 import sqlite3
 from typing import List
-from database import get_db_connection
+from app.database import get_db_connection
 
 from app.models.customer_model import CustomerModel
 from app.views import CustomerCreate, CustomerResponse, CustomerUpdate

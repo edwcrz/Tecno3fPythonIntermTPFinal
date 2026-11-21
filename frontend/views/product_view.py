@@ -19,6 +19,7 @@ sincronizando los cambios con la capa de servicio.
 
 import customtkinter as ctk
 from tkinter import messagebox
+
 from typing import Optional, Dict
 
 from frontend.services.product_service import ProductService
