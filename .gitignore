@@ -1,11 +1,11 @@
 .venv/
 venv/
-Cargar Datos/
-.pyc
-.pyd
-.pyo
-.drawio
-.csv
-.msql
-.xlsx
+Carga Datos/
+.pyc/
+.pyd/
+.pyo/
+.drawio/
+.csv/
+.msql/
+.xlsx/
 __pycache__/
