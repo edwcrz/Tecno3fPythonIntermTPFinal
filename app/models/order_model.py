@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS orders (
 #   communication: Optional[str] = Field(None, max_length=200, example="Order Communication")
 #   payment_methond: int = Field(..., ge=1)
 
-class OrdersModel:
+class OrderModel:
 
     @staticmethod
     # esta funcion es para obtener todas las ordenes de la base de datos, 

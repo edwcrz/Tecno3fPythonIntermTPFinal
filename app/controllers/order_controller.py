@@ -28,7 +28,7 @@ PaymentMethodModel.get_by_id.
 import sqlite3
 from contextlib import contextmanager
 
-from models.orders_model import OrdersModel
+from app.models.order_model import OrderModel
 from models.order_detail_model import OrderDetailModel
 from models.product_model import ProductModel
 from models.product_payment_model import ProductPaymentModel
@@ -37,9 +37,7 @@ from models.customer_model import CustomerModel
 
 class OrderController:
 
-    # ---------------------------------------------------------
-    # TRANSACCIONES
-    # ---------------------------------------------------------
+# ejecuto transacciones atómicas
     """
     Ejecuta todas las operaciones dentro de una única transacción.
     Si cualquier operación falla, realiza rollback.
@@ -58,9 +56,7 @@ class OrderController:
             conn.rollback()
             raise
 
-    # ---------------------------------------------------------
-    # VALIDACIONES
-    # ---------------------------------------------------------
+# realizo validaciones de cliente, de métodos de pago, de direcciones de entrega, de cantidad
 
     @staticmethod
     def validate_customer(conn, customer_id) -> str:
@@ -91,7 +87,7 @@ class OrderController:
 
     @staticmethod
     def get_pending_order(conn: sqlite3.Connection, order_id: int ) -> sqlite3.Row:
-        order = OrdersModel.get_by_id(conn, order_id)
+        order = OrderModel.get_by_id(conn, order_id)
         if order is None:
             raise ValueError(f"No existe la orden con ID {order_id}.")
         if order["state"] != "pending":
@@ -231,7 +227,7 @@ class OrderController:
                 "gift_message": order_data.get("gift_message"),
 
                 "currency": currency}
-            order_id = OrdersModel.create(conn, new_order_data)
+            order_id = OrderModel.create(conn, new_order_data)
             OrderController.insert_details(conn, order_id, prepared_details)
             return order_id
 
@@ -280,7 +276,7 @@ class OrderController:
                 "gift_message": order_data.get("gift_message"),
 
                 "currency": currency}
-            updated = OrdersModel.update(conn, order_id, updated_order_data)
+            updated = OrderModel.update(conn, order_id, updated_order_data)
             if not updated:
                 raise ValueError(f"No se pudo actualizar la orden {order_id}.")
             # Reemplaza los detalles anteriores.
@@ -305,7 +301,7 @@ class OrderController:
             if not quantities:
                 raise ValueError("No se puede confirmar una orden sin detalles.")
             OrderController.consume_reserved_stock(conn, quantities)
-            updated = OrdersModel.update(conn, order_id, {"state": "sold"})
+            updated = OrderModel.update(conn, order_id, {"state": "sold"})
             if not updated:
                 raise ValueError(f"No se pudo confirmar la orden {order_id}.")
             return True
@@ -324,7 +320,7 @@ class OrderController:
             OrderController.get_pending_order(conn, order_id)
             quantities = OrderController.get_quantities_from_order(conn, order_id)
             OrderController.release_stock(conn, quantities)
-            updated = OrdersModel.update(conn, order_id, {"state": "cancelled"})
+            updated = OrderModel.update(conn, order_id, {"state": "cancelled"})
             if not updated:
                 raise ValueError(f"No se pudo cancelar la orden {order_id}.")
             return True
@@ -342,7 +338,7 @@ class OrderController:
     @staticmethod
     def delete_order(conn: sqlite3.Connection, order_id: int) -> bool:
         with OrderController.transaction(conn):
-            order = OrdersModel.get_by_id(conn, order_id)
+            order = OrderModel.get_by_id(conn, order_id)
             if order is None:
                 raise ValueError(f"No existe la orden con ID {order_id}.")
             if order["state"] == "sold":
@@ -350,7 +346,7 @@ class OrderController:
             if order["state"] == "pending":
                 quantities = OrderController.get_quantities_from_order(conn, order_id)
                 OrderController.release_stock(conn, quantities)
-            deleted = OrdersModel.delete(conn, order_id)
+            deleted = OrderModel.delete(conn, order_id)
             if not deleted:
                 raise ValueError(f"No se pudo eliminar la orden {order_id}.")
             return True
@@ -361,7 +357,7 @@ class OrderController:
 
     @staticmethod
     def get_order_by_id(conn: sqlite3.Connection, order_id: int) -> Optional[dict[str, any]]:
-        order = OrdersModel.get_by_id(conn, order_id)
+        order = OrderModel.get_by_id(conn, order_id)
         if order is None:
             return None
         order_result = dict(order)
@@ -372,8 +368,8 @@ class OrderController:
 
     @staticmethod
     def get_all_orders(conn: sqlite3.Connection) -> list[dict[str, any]]:
-        orders = OrdersModel.get_all(conn)
-        result = list[dict[str, Any]] = []
+        orders = OrderModel.get_all(conn)
+        result = list[dict[str, any]] = []
         for order in orders:
             order_result = OrderController.get_order_by_id(conn, order["order_id"])
             if order_result is not None:

@@ -6,7 +6,7 @@ from database import get_db_connection
 from app.models.order_detail_model import OrderDetailModel
 from app.views import OrderDetailCreate, OrderDetailResponse, OrderDetailUpdate
 
-router = APIRouter(prefix="/orders", tags=["Orders"])
+router = APIRouter(prefix="/order_detail", tags=["OrderDetail"])
 
 @router.get("/", response_model=list[OrderDetailResponse])
 def get_order_detail(db: sqlite3.Connection = Depends(get_db_connection)):
