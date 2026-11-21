@@ -5,8 +5,10 @@ va a iniciar la app del backend
 va a tener las rutas de la api
 lo levanta en el servidor
 """
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+
 from app.database import init_db
 
 from app.routes.product_route import router as product_router
@@ -37,6 +39,4 @@ app.include_router(order_detail_router)
 
 if __name__ == "__main__":
     import uvicorn
-    config = uvicorn.run("main:app", port=8000, log_level="info", reload=True)
-    server = uvicorn.Server(config)
-    server.run()
+    uvicorn.run("main:app", port=8000, log_level="info", reload=True)
