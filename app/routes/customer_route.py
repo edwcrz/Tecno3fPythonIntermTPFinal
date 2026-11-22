@@ -4,7 +4,7 @@ from typing import List
 from app.database import get_db_connection
 
 from app.models.customer_model import CustomerModel
-from app.views import CustomerCreate, CustomerResponse, CustomerUpdate
+from app.views.customer_schema import CustomerCreate, CustomerResponse, CustomerUpdate
 
 router = APIRouter(prefix="/customer", tags=["Customer"])
 
