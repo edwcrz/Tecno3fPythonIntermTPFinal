@@ -107,3 +107,61 @@ class PaymentMethodCard(ctk.CTkFrame):
         ctk.CTkButton(self, text="Editar", width=70, fg_color=COLORS["info"],
                       hover_color=COLORS["info_hover"],
                       command=lambda: on_edit(method)).pack(side="right", padx=5, pady=8)
+
+class CustomerCard(ctk.CTkFrame):
+    """Muestra un cliente, si puede comprar, y permite editarlo, eliminarlo o ver sus direcciones."""
+    def __init__(self, master, customer: Dict, can_buy: bool, reason: str,
+                 on_edit: Callable[[Dict], None],
+                 on_delete: Callable[[int], None],
+                 on_addresses: Callable[[int], None]):
+        super().__init__(master, corner_radius=8, fg_color=COLORS["bg_card"])
+        cid = customer["customer_id"]
+
+        info = ctk.CTkFrame(self, fg_color="transparent")
+        info.pack(side="left", padx=15, pady=10, fill="x", expand=True)
+        full_name = f"{customer['name']} {customer.get('surname') or ''}".strip()
+        ctk.CTkLabel(info, text=f"#{cid}  {full_name}", anchor="w",
+                     font=ctk.CTkFont(size=14, weight="bold")).pack(fill="x")
+        contact = (f"Email: {customer.get('email') or '-'}   |   Instagram: {customer.get('instagram') or '-'}"
+                   f"   |   Tel: {customer.get('phone') or '-'}   |   Direcciones: {len(customer.get('addresses', []))}")
+        ctk.CTkLabel(info, text=contact, anchor="w", font=ctk.CTkFont(size=12),
+                     text_color=COLORS["muted_text"]).pack(fill="x")
+        ctk.CTkLabel(info, text=reason, anchor="w", font=ctk.CTkFont(size=12, weight="bold"),
+                     text_color=COLORS["status_ok"] if can_buy else COLORS["status_err"]).pack(fill="x")
+
+        ctk.CTkButton(self, text="Eliminar", width=70, fg_color=COLORS["danger"],
+                      hover_color=COLORS["danger_hover"],
+                      command=lambda: on_delete(cid)).pack(side="right", padx=(5, 10), pady=8)
+        ctk.CTkButton(self, text="Editar", width=70, fg_color=COLORS["info"],
+                      hover_color=COLORS["info_hover"],
+                      command=lambda: on_edit(customer)).pack(side="right", padx=5, pady=8)
+        ctk.CTkButton(self, text="Direcciones", width=90, fg_color=COLORS["primary"],
+                      hover_color=COLORS["primary_hover"],
+                      command=lambda: on_addresses(cid)).pack(side="right", padx=5, pady=8)
+
+
+class AddressCard(ctk.CTkFrame):
+    """Muestra una dirección de delivery y permite editarla o eliminarla."""
+    def __init__(self, master, address: Dict,
+                 on_edit: Callable[[Dict], None],
+                 on_delete: Callable[[int], None]):
+        super().__init__(master, corner_radius=8, fg_color=COLORS["bg_card"])
+        aid = address["address_id"]
+
+        info = ctk.CTkFrame(self, fg_color="transparent")
+        info.pack(side="left", padx=15, pady=10, fill="x", expand=True)
+        ctk.CTkLabel(info, text=f"#{aid}  {address['address']}", anchor="w",
+                     font=ctk.CTkFont(size=14, weight="bold")).pack(fill="x")
+        place = ", ".join(x for x in (address.get("locality"), address.get("province"),
+                                      address.get("country"), address.get("postal_code")) if x)
+        detail = place + (f"   |   {address['notes']}" if address.get("notes") else "")
+        if detail:
+            ctk.CTkLabel(info, text=detail, anchor="w", font=ctk.CTkFont(size=12),
+                         text_color=COLORS["muted_text"]).pack(fill="x")
+
+        ctk.CTkButton(self, text="Eliminar", width=70, fg_color=COLORS["danger"],
+                      hover_color=COLORS["danger_hover"],
+                      command=lambda: on_delete(aid)).pack(side="right", padx=(5, 10), pady=8)
+        ctk.CTkButton(self, text="Editar", width=70, fg_color=COLORS["info"],
+                      hover_color=COLORS["info_hover"],
+                      command=lambda: on_edit(address)).pack(side="right", padx=5, pady=8)
