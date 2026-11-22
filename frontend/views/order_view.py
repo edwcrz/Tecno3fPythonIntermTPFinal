@@ -65,31 +65,30 @@ class OrderView(BaseView):
             self.form.set_status(err, is_error=True)
             return
 
+        # self.products = catalog["products"]
+        # can_buy = [c for c in customers if CustomerService.sale_status(c)[0]]
+        # sellable = [p for p in self.products if p["base_price"] is not None and p["available"] > 0]
+        # self.form.set_options(can_buy, sellable, catalog["methods"])
+        # self._render_orders(orders)
         self.products = catalog["products"]
-        can_buy = [c for c in customers if CustomerService.sale_status(c)[0]]
-        sellable = [p for p in self.products if p["base_price"] is not None and p["available"] > 0]
-        self.form.set_options(can_buy, sellable, catalog["methods"])
+        self.form.set_options(catalog["methods"])
         self._render_orders(orders)
 
     def _render_orders(self, orders: List[Dict]):
         for widget in self.order_list.winfo_children():
             widget.destroy()
         if not orders:
-            ctk.CTkLabel(self.order_list, text="No hay pedidos registrados.",
-                         text_color=COLORS["muted_text"]).pack(pady=20)
+            ctk.CTkLabel(self.order_list, text="No hay pedidos registrados.", text_color=COLORS["muted_text"]).pack(pady=20)
             return
         names = {p["product_id"]: f"{p['name']} ({p['size']})" for p in self.products}
         options = {product_label(p): p for p in self.products
                    if p["base_price"] is not None and p["available"] > 0}
         for order in orders:
-            card = OrderCard(self.order_list, order=order, product_names=names, product_options=options,
-                             on_confirm=self.handle_confirm, on_cancel=self.handle_cancel,
-                             on_add_item=self.handle_add_item, on_remove_item=self.handle_remove_item)
+            card = OrderCard(self.order_list, order=order, product_names=names, product_options=options, on_confirm=self.handle_confirm, on_cancel=self.handle_cancel, on_add_item=self.handle_add_item, on_remove_item=self.handle_remove_item)
             card.pack(fill="x", padx=5, pady=5)
 
     def _list_status(self, text: str, is_error: bool = False):
-        self.list_status.configure(text=text,
-                                   text_color=COLORS["status_err"] if is_error else COLORS["status_ok"])
+        self.list_status.configure(text=text, text_color=COLORS["status_err"] if is_error else COLORS["status_ok"])
 
     # ------------------------------------------------------------------ pedidos
     def handle_create(self, customer_id: int, method_id: int, communication: Optional[str], items: List[Dict]):

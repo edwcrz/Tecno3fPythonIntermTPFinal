@@ -20,6 +20,7 @@ from frontend.config import COLORS
 
 # forms.py
 from frontend.services.search_service import SearchService
+from frontend.services.product_service import ProductService
 from frontend.components.search_helpers import (say, clear_options, show_options, filter_local, label_customer, label_product, label_method)
 
 # (clave del backend, texto del placeholder)
@@ -460,158 +461,197 @@ def product_label(p: Dict) -> str:
 
 class OrderForm(ctk.CTkScrollableFrame):
     """
-    Nuevo pedido. El precio final lo calcula el backend; acá solo se estima.
-    Si un producto se repite en dos filas, el backend suma las cantidades.
+    Nuevo pedido con tres buscadores:
+    1. Cliente: email EXACTO (un solo resultado)
+    2. Producto: comodín %texto% sobre nombre/categoría/grupo
+    3. Ingrediente: comodín %texto% sobre el campo ingredients
+    Los productos elegidos van a una lista (carrito) con su cantidad.
     """
-    NO_DATA = "(sin datos)"
-
     # on_save recibe: customer_id, payment_method_id, comunicación y la lista de ítems
     def __init__(self, master, on_save: Callable[[int, int, Optional[str], List[Dict]], None]):
         super().__init__(master, corner_radius=10)
         self.on_save = on_save
-        self.customer_map: Dict[str, Dict] = {}
-        self.method_map: Dict[str, Dict] = {}
-        self.product_map: Dict[str, Dict] = {}
-        self.item_rows: List[Dict] = []
+        self.customer: Optional[Dict] = None
+        self.method: Optional[Dict] = None
+        self.method_list: List[Dict] = []
+        self.cart: Dict[int, Dict] = {}        # product_id -> {"product": {...}, "qty": n}
 
-        ctk.CTkLabel(self, text="Nuevo Pedido", font=ctk.CTkFont(size=18, weight="bold")).pack(
-            padx=20, pady=(20, 15))
+        ctk.CTkLabel(self, text="Nuevo Pedido", font=ctk.CTkFont(size=18, weight="bold")).pack(padx=20, pady=(20, 10))
 
-        ctk.CTkLabel(self, text="Cliente (solo los que pueden comprar)", anchor="w").pack(padx=20, fill="x")
-        self.menu_customer = ctk.CTkOptionMenu(self, values=[self.NO_DATA])
-        self.menu_customer.pack(padx=20, pady=(0, 8), fill="x")
+        # ---- 1. cliente (exacta)
+        self.lbl_customer, _ = self._search_box("1. Cliente por email (exacto)", "ej: ana@mail.com", self.search_customer)
 
-        ctk.CTkLabel(self, text="Método de pago", anchor="w").pack(padx=20, fill="x")
-        self.menu_method = ctk.CTkOptionMenu(self, values=[self.NO_DATA], command=self.update_total)
-        self.menu_method.pack(padx=20, pady=(0, 8), fill="x")
+        # ---- método de pago (local)
+        self.lbl_method, self.opt_method = self._search_box("Método de pago (vacío lista todos)", "ej: crédito", self.search_method)
+
+        # ---- 2. producto (comodín)
+        self.lbl_product, self.opt_product = self._search_box("2. Producto (comodín %texto%)", "ej: cookie, torta", self.search_product)
+        # ---- 3. ingrediente (comodín)
+        self.lbl_ingredient, self.opt_ingredient = self._search_box("3. Ingrediente (comodín %texto%)", "ej: pistacho", self.search_ingredient)
 
         self.txt_communication = ctk.CTkEntry(self, placeholder_text="Comunicación (ej: pedido para cumpleaños)")
         self.txt_communication.pack(padx=20, pady=8, fill="x")
 
-        ctk.CTkLabel(self, text="Productos", anchor="w", font=ctk.CTkFont(weight="bold")).pack(
-            padx=20, pady=(8, 0), fill="x")
-        self.rows_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.rows_frame.pack(padx=10, fill="x")
-        ctk.CTkButton(self, text="+ Agregar producto", command=self.add_row,
-                      fg_color=COLORS["info"], hover_color=COLORS["info_hover"]).pack(padx=20, pady=8, fill="x")
-
+        ctk.CTkLabel(self, text="Carrito", anchor="w", font=ctk.CTkFont(weight="bold")).pack(padx=20, pady=(8, 0), fill="x")
+        self.cart_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.cart_frame.pack(padx=10, fill="x")
         self.lbl_total = ctk.CTkLabel(self, text="Total estimado: $0.00", font=ctk.CTkFont(size=14, weight="bold"))
         self.lbl_total.pack(padx=20, pady=(8, 0))
-
-        self.btn_save = ctk.CTkButton(self, text="Crear Pedido", command=self._handle_save,
-                                      fg_color=COLORS["primary"], hover_color=COLORS["primary_hover"])
+        self.btn_save = ctk.CTkButton(self, text="Crear Pedido", command=self._handle_save, fg_color=COLORS["primary"], hover_color=COLORS["primary_hover"])
         self.btn_save.pack(padx=20, pady=(10, 5), fill="x")
         self.status_lbl = ctk.CTkLabel(self, text="", text_color=COLORS["status_ok"], wraplength=240)
         self.status_lbl.pack(padx=20, pady=12)
+        self.render_cart()
 
-    def set_options(self, customers: List[Dict], products: List[Dict], methods: List[Dict]):
-        """Se llama en cada refresh. Recibe solo clientes que pueden comprar y productos con precio base."""
-        def cust_label(c: Dict) -> str:
-            return f"#{c['customer_id']} {c['name']} {c.get('surname') or ''}".strip()
+    def _search_box(self, title: str, placeholder: str, on_search):
+        """Arma título + campo + botón Buscar + estado + resultados. Devuelve (estado, resultados)."""
+        ctk.CTkLabel(self, text=title, anchor="w", font=ctk.CTkFont(weight="bold")).pack(padx=20, pady=(8, 0), fill="x")
+        line = ctk.CTkFrame(self, fg_color="transparent")
+        line.pack(padx=20, fill="x")
+        entry = ctk.CTkEntry(line, placeholder_text=placeholder)
+        entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        entry.bind("<Return>", lambda _e: on_search(entry.get()))
+        ctk.CTkButton(line, text="Buscar", width=70, command=lambda: on_search(entry.get())).pack(side="left")
+        status = ctk.CTkLabel(self, text="", anchor="w", justify="left", wraplength=250)
+        status.pack(padx=20, fill="x")
+        options = ctk.CTkFrame(self, fg_color="transparent")
+        options.pack(padx=20, fill="x")
+        return status, options
 
-        self.customer_map = {cust_label(c): c for c in customers}
-        self.method_map = {f"{m['method_name']} (+{m['overload'] * 100:g}%)": m for m in methods}
-        self.product_map = {product_label(p): p for p in products}
+    # ---------------- 1. cliente (exacta)
+    def search_customer(self, email: str):
+        self.customer = None
+        customer, err = SearchService.customer_by_email(email)
+        if err:
+            say(self.lbl_customer, err, True)
+        elif not customer["can_buy"]:
+            say(self.lbl_customer, f"{customer['name']}: {customer['reason']}. No se le puede vender.", True)
+        else:
+            self.customer = customer
+            say(self.lbl_customer, f"Elegido: {label_customer(customer)}")
 
-        customer_labels = list(self.customer_map) or [self.NO_DATA]
-        method_labels = list(self.method_map) or [self.NO_DATA]
-        self.menu_customer.configure(values=customer_labels)
-        self.menu_customer.set(customer_labels[0])
-        self.menu_method.configure(values=method_labels)
-        self.menu_method.set(method_labels[0])
+    # ---------------- método de pago (local)
 
-        for row in self.item_rows:     # se reconstruyen las filas con los productos actualizados
-            row["frame"].destroy()
-        self.item_rows = []
-        self.add_row()
-        self.update_total()
+    def search_method(self, text: str):
+        if not self.method_list:    # no depende de que refresh() haya llamado a set_options
+            methods, err = ProductService.list_methods()
+            if err:
+                say(self.lbl_method, err, True)
+                return
+            self.method_list = methods
+        found = filter_local(self.method_list, ("method_name", "payment_category"), text)
+        self.method = None
+        clear_options(self.opt_method)
+        if not found:
+            say(self.lbl_method, "Sin resultados.", True)
+        elif len(found) == 1:
+            self.pick_method(found[0])
+        else:
+            say(self.lbl_method, f"{len(found)} opciones: hacé clic en una.")
+            show_options(self.opt_method, found, label_method, self.pick_method)
+        self.render_cart()
+    
+    def pick_method(self, method: Dict):
+        self.method = method
+        clear_options(self.opt_method)
+        say(self.lbl_method, f"Elegido: {label_method(method)}")
+        self.render_cart()
 
-    def add_row(self):
-        labels = list(self.product_map) or [self.NO_DATA]
-        frame = ctk.CTkFrame(self.rows_frame, fg_color="transparent")
-        frame.pack(fill="x", pady=3)
-        menu = ctk.CTkOptionMenu(frame, values=labels, command=self.update_total)
-        menu.set(labels[0])
-        menu.pack(side="left", fill="x", expand=True, padx=(0, 5))
-        qty = ctk.CTkEntry(frame, width=50, placeholder_text="Cant.")
-        qty.pack(side="left", padx=(0, 5))
-        qty.bind("<KeyRelease>", lambda _e: self.update_total())
-        row = {"frame": frame, "menu": menu, "qty": qty}
-        ctk.CTkButton(frame, text="X", width=30, fg_color=COLORS["danger"], hover_color=COLORS["danger_hover"],
-                      command=lambda: self.remove_row(row)).pack(side="left")
-        self.item_rows.append(row)
+    def set_options(self, methods: List[Dict]):
+        """Se llama en cada refresh. Conserva el método elegido con datos actualizados."""
+        method_id = self.method["payment_method_id"] if self.method else None
+        self.method_list = methods
+        method = next((m for m in methods if m["payment_method_id"] == method_id), None)
+        if method:
+            self.pick_method(method)
 
-    def remove_row(self, row: Dict):
-        row["frame"].destroy()
-        self.item_rows.remove(row)
-        self.update_total()
+    # ---------------- 2 y 3. productos (comodín)
+    def search_product(self, text: str):
+        self._show_products(SearchService.products(text), self.lbl_product, self.opt_product, False)
 
-    def update_total(self, *_):
-        method = self.method_map.get(self.menu_method.get())
-        overload = method["overload"] if method else 0
+    def search_ingredient(self, text: str):
+        self._show_products(SearchService.ingredient(text), self.lbl_ingredient, self.opt_ingredient, True)
+
+    def _show_products(self, response, status, options, by_ingredient: bool):
+        data, err = response
+        clear_options(options)
+        if err:
+            say(status, err, True)
+            return
+        found = [p for p in data["results"] if p["sellable"]]    # solo lo que tiene precio y stock
+        if not found:
+            say(status, "Sin resultados con precio base y stock.", True)
+        elif len(found) == 1:
+            say(status, "1 resultado: agregado al carrito.")
+            self.add_to_cart(found[0])
+        else:
+            say(status, f"{len(found)} opciones: hacé clic en la que prefiera el cliente.")
+            show_options(options, found, lambda p: label_product(p, by_ingredient),
+                         lambda p: (clear_options(options), say(status, f"Agregado: {p['name']} ({p['size']})"),
+                                    self.add_to_cart(p)))
+
+    # ---------------- carrito
+    def add_to_cart(self, product: Dict):
+        pid = product["product_id"]
+        qty = self.cart[pid]["qty"] + 1 if pid in self.cart else 1
+        if qty > product["available"]:
+            self.set_status(f"Stock insuficiente de '{product['name']}': disponible {product['available']}.", True)
+            return
+        self.cart[pid] = {"product": product, "qty": qty}
+        self.render_cart()
+
+    def change_qty(self, pid: int, delta: int):
+        item = self.cart[pid]
+        qty = item["qty"] + delta
+        if qty <= 0:
+            del self.cart[pid]
+        elif qty > item["product"]["available"]:
+            self.set_status(f"Disponible: {item['product']['available']}.", True)
+            return
+        else:
+            item["qty"] = qty
+        self.render_cart()
+
+    def render_cart(self):
+        clear_options(self.cart_frame)
+        overload = self.method["overload"] if self.method else 0
         total = 0.0
-        for row in self.item_rows:
-            product = self.product_map.get(row["menu"].get())
-            qty = row["qty"].get().strip()
-            if product and qty.isdigit():
-                total += product["base_price"] * (1 + overload) * int(qty)
+        if not self.cart:
+            ctk.CTkLabel(self.cart_frame, text="Vacío: buscá un producto o un ingrediente.",
+                         text_color=COLORS["muted_text"]).pack(pady=6)
+        for pid, item in self.cart.items():
+            p, qty = item["product"], item["qty"]
+            subtotal = p["base_price"] * (1 + overload) * qty
+            total += subtotal
+            row = ctk.CTkFrame(self.cart_frame, corner_radius=8, fg_color=COLORS["bg_card"])
+            row.pack(fill="x", pady=3)
+            ctk.CTkLabel(row, anchor="w", justify="left", wraplength=130,
+                         text=f"{p['name']} ({p['size']})\n${subtotal:,.2f}").pack(side="left", padx=8, pady=4)
+            ctk.CTkButton(row, text="+", width=28, command=lambda i=pid: self.change_qty(i, 1)).pack(side="right", padx=(2, 6))
+            ctk.CTkLabel(row, text=str(qty), width=24).pack(side="right")
+            ctk.CTkButton(row, text="-", width=28, command=lambda i=pid: self.change_qty(i, -1)).pack(side="right", padx=2)
         self.lbl_total.configure(text=f"Total estimado: ${total:,.2f}")
 
     def _handle_save(self):
-        customer = self.customer_map.get(self.menu_customer.get())
-        method = self.method_map.get(self.menu_method.get())
-        if not customer or not method:
-            self.set_status("Elegí un cliente y un método de pago.", is_error=True)
+        if not self.customer:
+            self.set_status("Buscá al cliente por email.", True)
             return
-
-        items = []
-        for row in self.item_rows:
-            product = self.product_map.get(row["menu"].get())
-            qty = row["qty"].get().strip()
-            if not product:
-                continue
-            if not qty.isdigit() or int(qty) <= 0:
-                self.set_status("Cada producto necesita una cantidad entera mayor a 0.", is_error=True)
-                return
-            items.append({"product_id": product["product_id"], "quantity": int(qty)})
-        if not items:
-            self.set_status("Agregá al menos un producto.", is_error=True)
+        if not self.method:
+            self.set_status("Buscá y elegí un método de pago.", True)
             return
-
-        self.on_save(customer["customer_id"], method["payment_method_id"],
+        if not self.cart:
+            self.set_status("El carrito está vacío.", True)
+            return
+        items = [{"product_id": pid, "quantity": it["qty"]} for pid, it in self.cart.items()]
+        self.on_save(self.customer["customer_id"], self.method["payment_method_id"],
                      self.txt_communication.get().strip() or None, items)
 
     def clear(self):
         self.txt_communication.delete(0, "end")
-        for row in self.item_rows:
-            row["frame"].destroy()
-        self.item_rows = []
-        self.add_row()
-        self.update_total()
+        self.customer = None
+        self.cart = {}
+        self.lbl_customer.configure(text="")
+        self.render_cart()
 
     def set_status(self, text: str, is_error: bool = False):
-        self.status_lbl.configure(text=text, text_color=COLORS["status_err"] if is_error else COLORS["status_ok"])
-
-    def search_product(self, row: Dict):
-        row["product"] = None
-        clear_options(row["options"])
-        text = row["entry"].get().strip()
-        by_ingredient = row["mode"].get() == "Ingrediente"
-        if by_ingredient:
-            data, err = SearchService.ingredient(text)
-        else:
-            data, err = SearchService.products(text)
-        if err:
-            say(row["status"], err, True)
-        else:
-            found = [p for p in data["results"] if p["sellable"]]   # solo lo que tiene precio y stock
-            if not found:
-                say(row["status"], "Sin resultados con precio base y stock.", True)
-            elif len(found) == 1:
-                self.pick_product(row, found[0])
-            else:
-                say(row["status"], f"{len(found)} opciones: elegí la que prefiera el cliente.")
-                show_options(row["options"], found,
-                             lambda p: label_product(p, by_ingredient),
-                             lambda p: self.pick_product(row, p))
-        self.update_total()
+        say(self.status_lbl, text, is_error)

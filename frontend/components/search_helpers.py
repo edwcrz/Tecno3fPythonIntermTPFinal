@@ -5,6 +5,7 @@ Funciones sueltas que comparten los formularios con buscador (no hay widget apar
 from typing import Callable, Dict, List
 
 import customtkinter as ctk
+import unicodedata
 
 from frontend.config import COLORS
 
@@ -23,17 +24,13 @@ def show_options(container, items: List[Dict], label_fn: Callable[[Dict], str],
     """Muestra los resultados como botones para hacer clic."""
     clear_options(container)
     for item in items[:max_results]:
-        ctk.CTkButton(container, text=label_fn(item), anchor="w", height=26,
-                      fg_color=COLORS["bg_card"], hover_color=COLORS["cancel"],
-                      text_color=("gray10", "gray90"),
-                      command=lambda i=item: on_pick(i)).pack(fill="x", pady=2)
+        ctk.CTkButton(container, text=label_fn(item), anchor="w", height=26, fg_color=COLORS["bg_card"], hover_color=COLORS["cancel"], text_color=("gray10", "gray90"), command=lambda i=item: on_pick(i)).pack(fill="x", pady=2)
 
 
 def filter_local(items: List[Dict], fields: tuple, text: str) -> List[Dict]:
     """Tipo %texto%: todas las palabras deben aparecer. Texto vacío = todos."""
     words = text.lower().split()
-    return [i for i in items
-            if all(w in " ".join(str(i.get(f) or "") for f in fields).lower() for w in words)]
+    return [i for i in items if all(w in " ".join(str(i.get(f) or "") for f in fields).lower() for w in words)]
 
 
 def label_customer(c: Dict) -> str:
@@ -51,3 +48,16 @@ def label_product(p: Dict, show_ingredients: bool = False) -> str:
 
 def label_method(m: Dict) -> str:
     return f"{m['method_name']} (+{m['overload'] * 100:g}%)"
+
+
+def normalize(text: str) -> str:
+    """Minúsculas y sin tildes: 'crédito' == 'credito'."""
+    decomposed = unicodedata.normalize("NFD", text.lower())
+    return "".join(c for c in decomposed if unicodedata.category(c) != "Mn")
+
+
+def filter_local(items: List[Dict], fields: tuple, text: str) -> List[Dict]:
+    """Tipo %texto%: todas las palabras deben aparecer. Texto vacío = todos."""
+    words = normalize(text).split()
+    return [i for i in items
+            if all(w in normalize(" ".join(str(i.get(f) or "") for f in fields)) for w in words)]
