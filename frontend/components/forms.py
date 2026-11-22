@@ -447,3 +447,142 @@ class AddressForm(ctk.CTkScrollableFrame):
 
     def set_status(self, text: str, is_error: bool = False):
         self.status_lbl.configure(text=text, text_color=COLORS["status_err"] if is_error else COLORS["status_ok"])
+
+def product_label(p: Dict) -> str:
+    """Texto que se ve en los menús de producto (se usa en el formulario y en las tarjetas)."""
+    return f"#{p['product_id']} {p['name']} ({p['size']}) - disp. {p['available']}"
+
+
+class OrderForm(ctk.CTkScrollableFrame):
+    """
+    Nuevo pedido. El precio final lo calcula el backend; acá solo se estima.
+    Si un producto se repite en dos filas, el backend suma las cantidades.
+    """
+    NO_DATA = "(sin datos)"
+
+    # on_save recibe: customer_id, payment_method_id, comunicación y la lista de ítems
+    def __init__(self, master, on_save: Callable[[int, int, Optional[str], List[Dict]], None]):
+        super().__init__(master, corner_radius=10)
+        self.on_save = on_save
+        self.customer_map: Dict[str, Dict] = {}
+        self.method_map: Dict[str, Dict] = {}
+        self.product_map: Dict[str, Dict] = {}
+        self.item_rows: List[Dict] = []
+
+        ctk.CTkLabel(self, text="Nuevo Pedido", font=ctk.CTkFont(size=18, weight="bold")).pack(
+            padx=20, pady=(20, 15))
+
+        ctk.CTkLabel(self, text="Cliente (solo los que pueden comprar)", anchor="w").pack(padx=20, fill="x")
+        self.menu_customer = ctk.CTkOptionMenu(self, values=[self.NO_DATA])
+        self.menu_customer.pack(padx=20, pady=(0, 8), fill="x")
+
+        ctk.CTkLabel(self, text="Método de pago", anchor="w").pack(padx=20, fill="x")
+        self.menu_method = ctk.CTkOptionMenu(self, values=[self.NO_DATA], command=self.update_total)
+        self.menu_method.pack(padx=20, pady=(0, 8), fill="x")
+
+        self.txt_communication = ctk.CTkEntry(self, placeholder_text="Comunicación (ej: pedido para cumpleaños)")
+        self.txt_communication.pack(padx=20, pady=8, fill="x")
+
+        ctk.CTkLabel(self, text="Productos", anchor="w", font=ctk.CTkFont(weight="bold")).pack(
+            padx=20, pady=(8, 0), fill="x")
+        self.rows_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.rows_frame.pack(padx=10, fill="x")
+        ctk.CTkButton(self, text="+ Agregar producto", command=self.add_row,
+                      fg_color=COLORS["info"], hover_color=COLORS["info_hover"]).pack(padx=20, pady=8, fill="x")
+
+        self.lbl_total = ctk.CTkLabel(self, text="Total estimado: $0.00", font=ctk.CTkFont(size=14, weight="bold"))
+        self.lbl_total.pack(padx=20, pady=(8, 0))
+
+        self.btn_save = ctk.CTkButton(self, text="Crear Pedido", command=self._handle_save,
+                                      fg_color=COLORS["primary"], hover_color=COLORS["primary_hover"])
+        self.btn_save.pack(padx=20, pady=(10, 5), fill="x")
+        self.status_lbl = ctk.CTkLabel(self, text="", text_color=COLORS["status_ok"], wraplength=240)
+        self.status_lbl.pack(padx=20, pady=12)
+
+    def set_options(self, customers: List[Dict], products: List[Dict], methods: List[Dict]):
+        """Se llama en cada refresh. Recibe solo clientes que pueden comprar y productos con precio base."""
+        def cust_label(c: Dict) -> str:
+            return f"#{c['customer_id']} {c['name']} {c.get('surname') or ''}".strip()
+
+        self.customer_map = {cust_label(c): c for c in customers}
+        self.method_map = {f"{m['method_name']} (+{m['overload'] * 100:g}%)": m for m in methods}
+        self.product_map = {product_label(p): p for p in products}
+
+        customer_labels = list(self.customer_map) or [self.NO_DATA]
+        method_labels = list(self.method_map) or [self.NO_DATA]
+        self.menu_customer.configure(values=customer_labels)
+        self.menu_customer.set(customer_labels[0])
+        self.menu_method.configure(values=method_labels)
+        self.menu_method.set(method_labels[0])
+
+        for row in self.item_rows:     # se reconstruyen las filas con los productos actualizados
+            row["frame"].destroy()
+        self.item_rows = []
+        self.add_row()
+        self.update_total()
+
+    def add_row(self):
+        labels = list(self.product_map) or [self.NO_DATA]
+        frame = ctk.CTkFrame(self.rows_frame, fg_color="transparent")
+        frame.pack(fill="x", pady=3)
+        menu = ctk.CTkOptionMenu(frame, values=labels, command=self.update_total)
+        menu.set(labels[0])
+        menu.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        qty = ctk.CTkEntry(frame, width=50, placeholder_text="Cant.")
+        qty.pack(side="left", padx=(0, 5))
+        qty.bind("<KeyRelease>", lambda _e: self.update_total())
+        row = {"frame": frame, "menu": menu, "qty": qty}
+        ctk.CTkButton(frame, text="X", width=30, fg_color=COLORS["danger"], hover_color=COLORS["danger_hover"],
+                      command=lambda: self.remove_row(row)).pack(side="left")
+        self.item_rows.append(row)
+
+    def remove_row(self, row: Dict):
+        row["frame"].destroy()
+        self.item_rows.remove(row)
+        self.update_total()
+
+    def update_total(self, *_):
+        method = self.method_map.get(self.menu_method.get())
+        overload = method["overload"] if method else 0
+        total = 0.0
+        for row in self.item_rows:
+            product = self.product_map.get(row["menu"].get())
+            qty = row["qty"].get().strip()
+            if product and qty.isdigit():
+                total += product["base_price"] * (1 + overload) * int(qty)
+        self.lbl_total.configure(text=f"Total estimado: ${total:,.2f}")
+
+    def _handle_save(self):
+        customer = self.customer_map.get(self.menu_customer.get())
+        method = self.method_map.get(self.menu_method.get())
+        if not customer or not method:
+            self.set_status("Elegí un cliente y un método de pago.", is_error=True)
+            return
+
+        items = []
+        for row in self.item_rows:
+            product = self.product_map.get(row["menu"].get())
+            qty = row["qty"].get().strip()
+            if not product:
+                continue
+            if not qty.isdigit() or int(qty) <= 0:
+                self.set_status("Cada producto necesita una cantidad entera mayor a 0.", is_error=True)
+                return
+            items.append({"product_id": product["product_id"], "quantity": int(qty)})
+        if not items:
+            self.set_status("Agregá al menos un producto.", is_error=True)
+            return
+
+        self.on_save(customer["customer_id"], method["payment_method_id"],
+                     self.txt_communication.get().strip() or None, items)
+
+    def clear(self):
+        self.txt_communication.delete(0, "end")
+        for row in self.item_rows:
+            row["frame"].destroy()
+        self.item_rows = []
+        self.add_row()
+        self.update_total()
+
+    def set_status(self, text: str, is_error: bool = False):
+        self.status_lbl.configure(text=text, text_color=COLORS["status_err"] if is_error else COLORS["status_ok"])

@@ -1,154 +1,137 @@
-import customtkinter as ctk
+"""
+/frontend/views/order_view.py
+Pantalla PEDIDOS. Agrupa dos tablas del backend en dos pestañas:
+- Nuevo pedido: orders + order_detail (cliente, método de pago y varios productos)
+- Pedidos: lista con estado, total, ítems y dirección de entrega (leída del cliente)
+Sin stock disponible no se vende; el cliente necesita email y dirección.
+"""
+
+from typing import Dict, List, Optional
 from tkinter import messagebox
+
+import customtkinter as ctk
 
 from frontend.services.order_service import OrderService
 from frontend.services.customer_service import CustomerService
 from frontend.services.product_service import ProductService
+from frontend.components.forms import OrderForm, product_label
+from frontend.components.cards import OrderCard
+from frontend.views.base_view import BaseView
 from frontend.config import COLORS
 
-class OrderView(ctk.CTkFrame):
+
+class OrderView(BaseView):
     def __init__(self, master):
-        super().__init__(master, fg_color="transparent")
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=2)
-        self.grid_rowconfigure(0, weight=1)
+        super().__init__(master)
+        self.products: List[Dict] = []
 
-        self.cart_items = []
-        self.customer_data = {}
-        self.product_data = {}
+        top = ctk.CTkFrame(self, fg_color="transparent")
+        top.pack(fill="x", padx=10, pady=(10, 0))
+        ctk.CTkLabel(top, text="Pedidos", font=ctk.CTkFont(size=20, weight="bold")).pack(side="left")
+        ctk.CTkButton(top, text="Actualizar", width=90, command=self.refresh).pack(side="right")
 
-        # Columna Izquierda: Generar Venta
-        self.checkout_frame = ctk.CTkFrame(self, corner_radius=10)
-        self.checkout_frame.grid(row=0, column=0, padx=15, pady=15, sticky="nsew")
+        self.tabs = ctk.CTkTabview(self)
+        self.tabs.pack(fill="both", expand=True, padx=5, pady=5)
+        self._build_new_tab(self.tabs.add("Nuevo pedido"))
+        self._build_list_tab(self.tabs.add("Pedidos"))
+        # La carga de datos la dispara refresh() cuando se muestra la vista.
 
-        ctk.CTkLabel(self.checkout_frame, text="Nueva Venta", font=ctk.CTkFont(size=18, weight="bold")).pack(padx=20, pady=(20, 15))
+    # ------------------------------------------------------------------ armado
+    def _build_new_tab(self, tab):
+        tab.grid_columnconfigure(0, weight=1)
+        tab.grid_rowconfigure(0, weight=1)
+        self.form = OrderForm(tab, on_save=self.handle_create)
+        self.form.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
-        self.cb_customer = ctk.CTkComboBox(self.checkout_frame, values=["Cargando..."])
-        self.cb_customer.pack(padx=20, pady=8, fill="x")
+    def _build_list_tab(self, tab):
+        self.list_status = ctk.CTkLabel(tab, text="", text_color=COLORS["status_ok"], anchor="w", wraplength=700)
+        self.list_status.pack(fill="x", padx=15, pady=(10, 0))
+        self.order_list = ctk.CTkScrollableFrame(tab)
+        self.order_list.pack(fill="both", expand=True, padx=10, pady=10)
 
-        self.cb_product = ctk.CTkComboBox(self.checkout_frame, values=["Cargando..."])
-        self.cb_product.pack(padx=20, pady=8, fill="x")
-
-        self.txt_qty = ctk.CTkEntry(self.checkout_frame, placeholder_text="Cantidad")
-        self.txt_qty.pack(padx=20, pady=8, fill="x")
-
-        btn_add = ctk.CTkButton(self.checkout_frame, text="Agregar al Carrito", command=self.add_to_cart, fg_color=COLORS["info"])
-        btn_add.pack(padx=20, pady=8, fill="x")
-
-        self.cart_box = ctk.CTkTextbox(self.checkout_frame, height=120)
-        self.cart_box.pack(padx=20, pady=8, fill="x")
-
-        self.lbl_total = ctk.CTkLabel(self.checkout_frame, text="Total: $0.00", font=ctk.CTkFont(size=16, weight="bold"))
-        self.lbl_total.pack(padx=20, pady=8)
-
-        btn_process = ctk.CTkButton(self.checkout_frame, text="Confirmar Venta", command=self.process_sale, fg_color=COLORS["success"])
-        btn_process.pack(padx=20, pady=(5, 15), fill="x")
-
-        # Columna Derecha: Historial y Detalles
-        self.history_frame = ctk.CTkFrame(self, corner_radius=10)
-        self.history_frame.grid(row=0, column=1, padx=(0, 15), pady=15, sticky="nsew")
-
-        ctk.CTkLabel(self.history_frame, text="Registro de Ventas", font=ctk.CTkFont(size=20, weight="bold")).pack(anchor="w", padx=15, pady=15)
-        self.scroll = ctk.CTkScrollableFrame(self.history_frame)
-        self.scroll.pack(fill="both", expand=True, padx=15, pady=(0, 15))
-
-        self.load_dropdowns()
-        self.load_sales_history()
-
-    def load_dropdowns(self):
-        # 1. Cargar Clientes
-        customer, err = CustomerService.get_all()
-        if customer:
-            self.customer_data = {f"#{c['id']} - {c['name']}": c["id"] for c in customer}
-            self.cb_customer.configure(values=list(self.customers_data.keys()))
-            self.cb_customer.set(list(self.customers_data.keys())[0])
-        else:
-            self.customers_data = {}
-            self.cb_customer.configure(values=["Sin clientes registrados"])
-            self.cb_customer.set("Sin clientes registrados")
-
-        # 2. Cargar Productos
-        prods, err = ProductService.get_all()
-        if prods:
-            self.product_data = {
-                f"#{p['id']} {p['name']} (${p['price']})": {
-                    "id": p["id"], 
-                    "price": p["price"], 
-                    "name": p["name"]
-                } for p in prods
-            }
-            self.cb_product.configure(values=list(self.product_data.keys()))
-            self.cb_product.set(list(self.product_data.keys())[0])
-        else:
-            self.product_data = {}
-            self.cb_product.configure(values=["Sin stock / productos"])
-            self.cb_product.set("Sin stock / productos")
-            
-    def add_to_cart(self):
-        selected_prod = self.cb_product.get()
-        qty_str = self.txt_qty.get().strip()
-
-        if selected_prod not in self.product_data or not qty_str.isdigit():
-            messagebox.showwarning("Atención", "Seleccioná un producto y una cantidad válida")
+    # ------------------------------------------------------------------ carga
+    def refresh(self):
+        """Se llama cada vez que la vista se muestra: recarga clientes, catálogo y pedidos."""
+        customers, err = CustomerService.list_customers()
+        if err:
+            self.form.set_status(err, is_error=True)
+            return
+        catalog, err = ProductService.load_catalog()
+        if err:
+            self.form.set_status(err, is_error=True)
+            return
+        orders, err = OrderService.list_orders()
+        if err:
+            self.form.set_status(err, is_error=True)
             return
 
-        qty = int(qty_str)
-        if qty <= 0:
+        self.products = catalog["products"]
+        can_buy = [c for c in customers if CustomerService.sale_status(c)[0]]
+        sellable = [p for p in self.products if p["base_price"] is not None and p["available"] > 0]
+        self.form.set_options(can_buy, sellable, catalog["methods"])
+        self._render_orders(orders)
+
+    def _render_orders(self, orders: List[Dict]):
+        for widget in self.order_list.winfo_children():
+            widget.destroy()
+        if not orders:
+            ctk.CTkLabel(self.order_list, text="No hay pedidos registrados.",
+                         text_color=COLORS["muted_text"]).pack(pady=20)
             return
-
-        prod_info = self.product_data[selected_prod]
-        subtotal = prod_info["price"] * qty
-        self.cart_items.append({"product_id": prod_info["id"], "name": prod_info["name"], "quantity": qty, "price": prod_info["price"], "subtotal": subtotal})
-
-        self.update_cart_display()
-        self.txt_qty.delete(0, "end")
-
-    def update_cart_display(self):
-        self.cart_box.delete("1.0", "end")
-        total = 0.0
-        for item in self.cart_items:
-            self.cart_box.insert("end", f"{item['name']} x{item['quantity']} = ${item['subtotal']:.2f}\n")
-            total += item["subtotal"]
-        self.lbl_total.configure(text=f"Total: ${total:.2f}")
-
-    def process_sale(self):
-        selected_cust = self.cb_customer.get()
-        if selected_cust not in self.customer_data or not self.cart_items:
-            messagebox.showwarning("Atención", "Debe seleccionar un cliente y tener productos en el carrito")
-            return
-
-        customer_id = self.customer_data[selected_cust]
-        items_payload = [{"product_id": i["product_id"], "quantity": i["quantity"]} for i in self.cart_items]
-
-        ok, err = OrderService.create_sale(customer_id, items_payload)
-        if not ok:
-            messagebox.showerror("Error", err)
-            return
-
-        messagebox.showinfo("Éxito", "Venta procesada con éxito")
-        self.cart_items.clear()
-        self.update_cart_display()
-        self.load_dropdowns()
-        self.load_sales_history()
-
-    def load_sales_history(self):
-        for w in self.scroll.winfo_children():
-            w.destroy()
-
-        sales, _ = OrderService.get_all()
-        if not sales:
-            return
-
-        for s in sales:
-            card = ctk.CTkFrame(self.scroll, corner_radius=8, fg_color=COLORS["bg_card"])
+        names = {p["product_id"]: f"{p['name']} ({p['size']})" for p in self.products}
+        options = {product_label(p): p for p in self.products
+                   if p["base_price"] is not None and p["available"] > 0}
+        for order in orders:
+            card = OrderCard(self.order_list, order=order, product_names=names, product_options=options,
+                             on_confirm=self.handle_confirm, on_cancel=self.handle_cancel,
+                             on_add_item=self.handle_add_item, on_remove_item=self.handle_remove_item)
             card.pack(fill="x", padx=5, pady=5)
 
-            ctk.CTkLabel(card, text=f"Venta #{s['id']} | Cliente: {s['customer_name']} | Fecha: {s['date']} | Total: ${s['total']:.2f}", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=(8, 4))
+    def _list_status(self, text: str, is_error: bool = False):
+        self.list_status.configure(text=text,
+                                   text_color=COLORS["status_err"] if is_error else COLORS["status_ok"])
 
-            details_text = " | ".join([f"{item['product_name']} (x{item['quantity']} a ${item['unit_price']:.2f})" for item in s["items"]])
-            ctk.CTkLabel(card, text=f"Detalle: {details_text}", text_color=COLORS["muted_text"], font=ctk.CTkFont(size=12)).pack(anchor="w", padx=10, pady=(0, 8))
+    # ------------------------------------------------------------------ pedidos
+    def handle_create(self, customer_id: int, method_id: int, communication: Optional[str], items: List[Dict]):
+        order, err = OrderService.create_order(customer_id, method_id, communication, items)
+        if err:   # por ejemplo: "Stock insuficiente de 'Lemon pie': pedido 5, disponible 3"
+            self.form.set_status(err, is_error=True)
+            return
+        self.form.clear()
+        self.refresh()
+        self.form.set_status(f"Pedido #{order['order_id']} creado. Total: ${order['total']:,.2f}")
+        self._list_status(f"Pedido #{order['order_id']} creado.")
 
-    def refresh(self):
-        """Actualiza todos los datos de la vista al enfocarla."""
-        self.load_dropdowns()
-        self.load_sales_history()
+    def handle_confirm(self, order_id: int):
+        if not messagebox.askyesno("Confirmar", f"¿Confirmar el pedido #{order_id}? Descuenta el stock.", parent=self):
+            return
+        self._change_state(order_id, "confirmed", "confirmado")
+
+    def handle_cancel(self, order_id: int):
+        if not messagebox.askyesno("Confirmar", f"¿Cancelar el pedido #{order_id}? Libera las reservas.", parent=self):
+            return
+        self._change_state(order_id, "cancelled", "cancelado")
+
+    def _change_state(self, order_id: int, state: str, done: str):
+        _, err = OrderService.change_state(order_id, state)
+        if err:
+            self._list_status(err, is_error=True)
+            return
+        self.refresh()
+        self._list_status(f"Pedido #{order_id} {done}.")
+
+    def handle_add_item(self, order_id: int, product_id: int, quantity: int):
+        _, err = OrderService.add_item(order_id, product_id, quantity)
+        if err:
+            self._list_status(err, is_error=True)
+            return
+        self.refresh()
+        self._list_status(f"Ítem agregado al pedido #{order_id}.")
+
+    def handle_remove_item(self, order_id: int, order_detail_id: int):
+        _, err = OrderService.remove_item(order_id, order_detail_id)
+        if err:
+            self._list_status(err, is_error=True)
+            return
+        self.refresh()
+        self._list_status(f"Ítem quitado del pedido #{order_id}.")

@@ -11,7 +11,7 @@ Componente modular reutilizable diseñado para presentar la información individ
 proporcionar botones rápidos de acción para edición y eliminación.
 """
 import customtkinter as ctk
-from typing import Callable, Dict
+from typing import Callable, Dict, List
 from frontend.config import COLORS
 
 
@@ -165,3 +165,87 @@ class AddressCard(ctk.CTkFrame):
         ctk.CTkButton(self, text="Editar", width=70, fg_color=COLORS["info"],
                       hover_color=COLORS["info_hover"],
                       command=lambda: on_edit(address)).pack(side="right", padx=5, pady=8)
+
+STATE_TEXT = {"pending": "Pendiente", "confirmed": "Confirmado", "cancelled": "Cancelado"}
+STATE_COLOR = {"pending": COLORS["info"], "confirmed": COLORS["status_ok"], "cancelled": COLORS["status_err"]}
+
+
+class OrderCard(ctk.CTkFrame):
+    """
+    Pedido con sus ítems. Los precios son una foto del momento de la compra.
+    Solo si está pendiente se pueden quitar/agregar ítems, confirmar o cancelar.
+    """
+    def __init__(self, master, order: Dict, product_names: Dict[int, str], product_options: Dict[str, Dict],
+                 on_confirm: Callable[[int], None],
+                 on_cancel: Callable[[int], None],
+                 on_add_item: Callable[[int, int, int], None],
+                 on_remove_item: Callable[[int, int], None]):
+        super().__init__(master, corner_radius=8, fg_color=COLORS["bg_card"])
+        oid = order["order_id"]
+        state = order["state"]
+        pending = state == "pending"
+        self.options = product_options
+        self.on_add_item = on_add_item
+        self.order_id = oid
+
+        head = ctk.CTkFrame(self, fg_color="transparent")
+        head.pack(fill="x", padx=15, pady=(10, 0))
+        ctk.CTkLabel(head, text=f"Pedido #{oid}   |   {order['date']}", font=ctk.CTkFont(size=14, weight="bold")).pack(side="left")
+        ctk.CTkLabel(head, text=f"{STATE_TEXT.get(state, state)}   |   Total: ${order['total']:,.2f}",
+                     font=ctk.CTkFont(size=14, weight="bold"), text_color=STATE_COLOR.get(state)).pack(side="right")
+
+        c = order["customer"]
+        who = f"{c['name']} {c.get('surname') or ''}".strip()
+        ctk.CTkLabel(self, text=f"Cliente: {who}   |   Email: {c.get('email') or '-'}   |   Tel: {c.get('phone') or '-'}",
+                     anchor="w", font=ctk.CTkFont(size=12), text_color=COLORS["muted_text"]).pack(fill="x", padx=15)
+        addresses = order.get("delivery_addresses") or []
+        if addresses:
+            text = "Entrega: " + "  /  ".join(
+                ", ".join(x for x in (a["address"], a.get("locality"), a.get("province")) if x) for a in addresses)
+            ctk.CTkLabel(self, text=text, anchor="w", justify="left", wraplength=560, font=ctk.CTkFont(size=12),
+                         text_color=COLORS["muted_text"]).pack(fill="x", padx=15)
+        if order.get("communication"):
+            ctk.CTkLabel(self, text=f"Nota: {order['communication']}", anchor="w", font=ctk.CTkFont(size=12),
+                         text_color=COLORS["muted_text"]).pack(fill="x", padx=15)
+
+        items = order.get("items", [])
+        for it in items:
+            row = ctk.CTkFrame(self, fg_color="transparent")
+            row.pack(fill="x", padx=15, pady=1)
+            name = product_names.get(it["product_id"], f"Producto #{it['product_id']}")
+            ctk.CTkLabel(row, anchor="w", font=ctk.CTkFont(size=13),
+                         text=f"{it['quantity']} x {name}   @ ${it['unit_price']:,.2f}   =   ${it['subtotal']:,.2f}"
+                         ).pack(side="left")
+            if pending and len(items) > 1:    # el backend no deja un pedido vacío
+                detail_id = it["order_detail_id"]
+                ctk.CTkButton(row, text="Quitar", width=60, height=24, fg_color=COLORS["danger"],
+                              hover_color=COLORS["danger_hover"],
+                              command=lambda d=detail_id: on_remove_item(oid, d)).pack(side="right")
+
+        if pending:
+            add = ctk.CTkFrame(self, fg_color="transparent")
+            add.pack(fill="x", padx=15, pady=(6, 0))
+            labels = list(product_options) or ["(sin productos)"]
+            self.menu_product = ctk.CTkOptionMenu(add, values=labels, height=26)
+            self.menu_product.set(labels[0])
+            self.menu_product.pack(side="left", fill="x", expand=True, padx=(0, 5))
+            self.txt_qty = ctk.CTkEntry(add, width=50, height=26, placeholder_text="Cant.")
+            self.txt_qty.pack(side="left", padx=(0, 5))
+            ctk.CTkButton(add, text="Agregar ítem", width=90, height=26, command=self._add_item,
+                          fg_color=COLORS["info"], hover_color=COLORS["info_hover"]).pack(side="left")
+
+        buttons = ctk.CTkFrame(self, fg_color="transparent")
+        buttons.pack(fill="x", padx=15, pady=10)
+        if pending:
+            ctk.CTkButton(buttons, text="Confirmar", width=90, fg_color=COLORS["success"],
+                          hover_color=COLORS["success_hover"],
+                          command=lambda: on_confirm(oid)).pack(side="right", padx=(5, 0))
+            ctk.CTkButton(buttons, text="Cancelar", width=90, fg_color=COLORS["danger"],
+                          hover_color=COLORS["danger_hover"],
+                          command=lambda: on_cancel(oid)).pack(side="right")
+
+    def _add_item(self):
+        product = self.options.get(self.menu_product.get())
+        qty = self.txt_qty.get().strip()
+        if product and qty.isdigit() and int(qty) > 0:
+            self.on_add_item(self.order_id, product["product_id"], int(qty))
