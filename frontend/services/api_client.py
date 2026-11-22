@@ -37,7 +37,7 @@ def request(method: str, path: str, default_error: str, **kwargs) -> Tuple[Any, 
         return None, f"Error de red: {e}"
 
     if not res.ok:
-        return None, _error_message(res, default_error)
+        return None, f"{_error_message(res, default_error)} [{method} {path}]"
     if res.status_code == 204 or not res.content:
         return True, None
     return res.json(), None
