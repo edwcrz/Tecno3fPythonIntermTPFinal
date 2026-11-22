@@ -96,7 +96,7 @@ def init_db() -> None:
                 address TEXT NOT NULL,
                 locality TEXT NULL,
                 province TEXT NULL,
-                pais TEXT NULL,
+                country TEXT NULL,
                 postal_code TEXT NULL,
                 notes TEXT NULL,
                 customer_id INTEGER NOT NULL,

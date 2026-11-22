@@ -1,34 +1,44 @@
 """
 /app/routes/product_route.py
+Rutas finitas: reciben, delegan en ProductController y responden.
 """
 import sqlite3
 
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status
 
-from typing import List
-
+from app.controllers.product_controller import ProductController
 from app.database import get_db_connection
-from app.models.product_model import ProductModel
-from app.views import ProductCreate, ProductResponse, ProductUpdate
+from app.views.product_schema import ProductCreate, ProductResponse, ProductUpdate, StockAdd
 
 router = APIRouter(prefix="/product", tags=["Product"])
 
+
 @router.get("/", response_model=list[ProductResponse])
-def get_product(db: sqlite3.Connection = Depends(get_db_connection)):
-    return [dict(row) for row in ProductModel.get_all(db)]    
+def get_products(db: sqlite3.Connection = Depends(get_db_connection)):
+    return ProductController.get_all(db)
+
 
 @router.get("/{product_id}", response_model=ProductResponse)
-def get_product_by_id(product_id = int, db: sqlite3.Connection = Depends(get_db_connection)):
-    return [ProductModel.get_by_id(db, product_id)]
+def get_product(product_id: int, db: sqlite3.Connection = Depends(get_db_connection)):
+    return ProductController.get(db, product_id)
 
-@router.post("/", response_model=ProductResponse)
+
+@router.post("/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
 def create_product(product: ProductCreate, db: sqlite3.Connection = Depends(get_db_connection)):
-    return [ProductModel.create(db, product)]    
+    return ProductController.create(db, product.model_dump())
+
 
 @router.put("/{product_id}", response_model=ProductResponse)
-def update_product(product_id: int, product: ProductUpdate, db: sqlite3.Connection = Depends(get_db_connection)):
-    return [ProductModel.update(db, product_id, product)]
+def update_product(product_id: int, product: ProductUpdate,
+                   db: sqlite3.Connection = Depends(get_db_connection)):
+    return ProductController.update(db, product_id, product.model_dump())
 
-@router.delete("/{product_id}", response_model=ProductResponse, status_code=status.HTTP_200_OK)
+
+@router.post("/{product_id}/stock", response_model=ProductResponse)
+def add_stock(product_id: int, body: StockAdd, db: sqlite3.Connection = Depends(get_db_connection)):
+    return ProductController.add_stock(db, product_id, body.quantity)
+
+
+@router.delete("/{product_id}", response_model=ProductResponse)
 def delete_product(product_id: int, db: sqlite3.Connection = Depends(get_db_connection)):
-    return [ProductModel.delete(db, product_id)]
+    return ProductController.delete(db, product_id)

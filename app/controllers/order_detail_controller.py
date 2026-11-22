@@ -35,7 +35,12 @@ class OrderDetailController:
 
         unit_price = round(base_price * (1 + overload), 2)
         subtotal = round(unit_price * quantity, 2)
-        OrderDetailModel.create(db, order_id, product_id, quantity, unit_price, subtotal)
+        OrderDetailModel.create(db, {
+            "order_id": order_id,
+            "product_id": product_id,
+            "quantity": quantity,
+            "unit_price": unit_price,
+            "subtotal": subtotal,})
 
     @staticmethod
     def _pending_order(db: sqlite3.Connection, order_id: int) -> sqlite3.Row:

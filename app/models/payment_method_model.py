@@ -76,8 +76,8 @@ class PaymentMethodModel:
             DELETE FROM payment_method 
             WHERE payment_method_id = ?;""", (payment_method_id,))
         return cursor.rowcount > 0
+    
     @staticmethod
-
     def exists_name(conn: sqlite3.Connection, method_name: str, exclude_id: int | None = None) -> bool:
         row = conn.execute("""
             SELECT 1 

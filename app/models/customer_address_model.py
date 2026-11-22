@@ -1,40 +1,18 @@
 """
-/app/models/CustomerAddressModel
+/app/models/customer_address_model.py
 Acceso a datos de la tabla customer_address. Solo SQL: las reglas viven en CustomerAddressController.
-
 """
-
 import sqlite3
 from typing import Optional
 
-"""
-CREATE TABLE IF NOT EXISTS customer_address (
-    address_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    address TEXT NOT NULL,
-    locality TEXT NULL,
-    province TEXT NULL,
-    pais TEXT NULL,
-    postal_code TEXT NULL,
-    notes TEXT NULL,
-    customer_id INTEGER NOT NULL,
-"""
-
-# class CustomerAddressBase(BaseModel):
-#   address: str = Field(..., min_length=1, max_length=200, example="Customer Address")
-#   locality: Optional[str] = Field(None, max_length=100, example="Customer Locality")
-#   province: Optional[str] = Field(None, max_length=100, example="Customer Province")
-#   pais: Optional[str] = Field(None, max_length=100, example="Customer Country")
-#   postal_code: Optional[str] = Field(None, max_length=20, example="Customer Postal Code")
-#   notes: Optional[str] = Field(None, max_length=200, example="Customer Notes")
-#   customer_id: int = Field(..., example=1)
-
- # Tabla (ver database.py):
+# Tabla (ver database.py):
 #   address_id INTEGER PRIMARY KEY AUTOINCREMENT,
 #   address TEXT NOT NULL, locality TEXT NULL, province TEXT NULL,
-#   pais TEXT NULL, postal_code TEXT NULL, notes TEXT NULL,
+#   country TEXT NULL, postal_code TEXT NULL, notes TEXT NULL,
 #   customer_id INTEGER NOT NULL (FK a customer, ON DELETE RESTRICT)
 
-COLUMNS = "address_id, address, locality, province, pais, postal_code, notes, customer_id"
+COLUMNS = "address_id, address, locality, province, country, postal_code, notes, customer_id"
+
 
 class CustomerAddressModel:
 
@@ -73,12 +51,12 @@ class CustomerAddressModel:
     @staticmethod
     def create(conn: sqlite3.Connection, customer_address_data: dict) -> int:
         cursor = conn.execute("""
-            INSERT INTO customer_address (address, locality, province, pais, postal_code, notes, customer_id)
+            INSERT INTO customer_address (address, locality, province, country, postal_code, notes, customer_id)
             VALUES (?, ?, ?, ?, ?, ?, ?);""", (
                 customer_address_data["address"],
                 customer_address_data.get("locality"),
                 customer_address_data.get("province"),
-                customer_address_data.get("pais"),
+                customer_address_data.get("country"),
                 customer_address_data.get("postal_code"),
                 customer_address_data.get("notes"),
                 customer_address_data["customer_id"]))
@@ -89,13 +67,13 @@ class CustomerAddressModel:
     def update(conn: sqlite3.Connection, address_id: int, customer_address_data: dict) -> bool:
         cursor = conn.execute("""
             UPDATE customer_address
-            SET address = ?, locality = ?, province = ?, pais = ?, postal_code = ?,
+            SET address = ?, locality = ?, province = ?, country = ?, postal_code = ?,
                 notes = ?, customer_id = ?
             WHERE address_id = ?;""", (
                 customer_address_data["address"],
                 customer_address_data.get("locality"),
                 customer_address_data.get("province"),
-                customer_address_data.get("pais"),
+                customer_address_data.get("country"),
                 customer_address_data.get("postal_code"),
                 customer_address_data.get("notes"),
                 customer_address_data["customer_id"],

@@ -26,7 +26,7 @@ class CustomerAddressController:
             "address": required_text(data.get("address"), "address", 200),
             "locality": optional_text(data.get("locality"), "locality"),
             "province": optional_text(data.get("province"), "province"),
-            "pais": optional_text(data.get("pais"), "pais"),
+            "country": optional_text(data.get("country"), "country"),
             "postal_code": optional_text(data.get("postal_code"), "postal_code", 20),
             "notes": optional_text(data.get("notes"), "notes", 500),
         }
