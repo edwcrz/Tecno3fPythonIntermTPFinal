@@ -392,12 +392,13 @@ class AddressForm(ctk.CTkScrollableFrame):
         self.status_lbl.pack(padx=20, pady=12)
 
     @staticmethod
-    def _label(c: Dict) -> str:
+    def customer_label(c: Dict) -> str:
         return f"#{c['customer_id']} {c['name']} {c.get('surname') or ''}".strip()
 
     def set_customers(self, customers: List[Dict], selected_id: Optional[int] = None):
         """Se llama en cada refresh; conserva el cliente elegido."""
-        self._customers = {self._label(c): c for c in customers}
+        # self._customers = {self._label(c): c for c in customers}
+        self._customers = {self.customer_label(c): c for c in customers}
         labels = list(self._customers) or [self.NO_DATA]
         self.menu_customer.configure(values=labels)
         chosen = next((l for l, c in self._customers.items() if c["customer_id"] == selected_id), labels[0])
