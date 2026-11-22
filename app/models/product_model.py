@@ -136,3 +136,18 @@ class ProductModel:
     def delete(conn: sqlite3.Connection, product_id: int) -> bool:
         cursor = conn.execute("DELETE FROM product WHERE product_id = ?;", (product_id,))
         return cursor.rowcount > 0
+
+    # Búsqueda enmascarada: cada palabra se busca como %palabra% en alguno de los campos.
+    # Si hay varias palabras, deben estar todas. 'fields' siempre viene de una lista fija del controller.
+    @staticmethod
+    def search_like(conn: sqlite3.Connection, text: str, fields: tuple) -> list[sqlite3.Row]:
+        clauses, params = [], []
+        for word in text.split():
+            safe = word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            pattern = f"%{safe}%"
+            ors = " OR ".join(f"COALESCE({f}, '') LIKE ? ESCAPE '\\'" for f in fields)
+            clauses.append(f"({ors})")
+            params.extend([pattern] * len(fields))
+        where = " AND ".join(clauses) or "1=1"
+        return conn.execute(
+            f"SELECT {COLUMNS} FROM product WHERE {where} ORDER BY name, size;", params).fetchall()

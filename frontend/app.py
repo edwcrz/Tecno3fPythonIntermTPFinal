@@ -8,9 +8,7 @@ dinámico a la derecha, e intercambia las vistas (Productos, Clientes, Ventas).
 
 import customtkinter as ctk
 
-from frontend.config import (
-    WINDOW_TITLE, WINDOW_SIZE, MIN_WINDOW_SIZE, THEME_MODE, COLOR_THEME
-)
+from frontend.config import (WINDOW_TITLE, WINDOW_SIZE, MIN_WINDOW_SIZE, THEME_MODE, COLOR_THEME)
 from frontend.components.sidebar import AppSidebar
 from frontend.views.product_view import ProductView
 from frontend.views.customer_view import CustomerView

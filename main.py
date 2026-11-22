@@ -18,6 +18,7 @@ from app.routes.customer_route import router as customer_router
 from app.routes.customer_address_route import router as customer_address_router
 from app.routes.order_route import router as order_router
 from app.routes.order_detail_route import router as order_detail_router
+from app.routes.search_route import router as search_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -36,6 +37,7 @@ app.include_router(customer_router)
 app.include_router(customer_address_router)
 app.include_router(order_router)
 app.include_router(order_detail_router)
+app.include_router(search_router)
 
 if __name__ == "__main__":
     import uvicorn
