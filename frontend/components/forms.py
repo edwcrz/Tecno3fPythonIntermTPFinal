@@ -15,7 +15,12 @@ Realiza validaciones locales de datos numéricos y conmuta su interfaz entre los
 
 import customtkinter as ctk
 from typing import Callable, Optional, Dict, List
+
 from frontend.config import COLORS
+
+# forms.py
+from frontend.services.search_service import SearchService
+from frontend.components.search_helpers import (say, clear_options, show_options, filter_local, label_customer, label_product, label_method)
 
 # (clave del backend, texto del placeholder)
 REQUIRED_FIELDS = [
@@ -586,3 +591,27 @@ class OrderForm(ctk.CTkScrollableFrame):
 
     def set_status(self, text: str, is_error: bool = False):
         self.status_lbl.configure(text=text, text_color=COLORS["status_err"] if is_error else COLORS["status_ok"])
+
+    def search_product(self, row: Dict):
+        row["product"] = None
+        clear_options(row["options"])
+        text = row["entry"].get().strip()
+        by_ingredient = row["mode"].get() == "Ingrediente"
+        if by_ingredient:
+            data, err = SearchService.ingredient(text)
+        else:
+            data, err = SearchService.products(text)
+        if err:
+            say(row["status"], err, True)
+        else:
+            found = [p for p in data["results"] if p["sellable"]]   # solo lo que tiene precio y stock
+            if not found:
+                say(row["status"], "Sin resultados con precio base y stock.", True)
+            elif len(found) == 1:
+                self.pick_product(row, found[0])
+            else:
+                say(row["status"], f"{len(found)} opciones: elegí la que prefiera el cliente.")
+                show_options(row["options"], found,
+                             lambda p: label_product(p, by_ingredient),
+                             lambda p: self.pick_product(row, p))
+        self.update_total()
