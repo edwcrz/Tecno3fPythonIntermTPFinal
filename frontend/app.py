@@ -38,8 +38,8 @@ class MainWindow(ctk.CTk):
 
         self.views = {
             "product": ProductView(self.content_area),
-            "customer": CustomerView(self.content_area),
-            "order": OrderView(self.content_area),
+            # "customer": CustomerView(self.content_area),
+            # "order": OrderView(self.content_area),
         }
         self.show_view("product")
 
