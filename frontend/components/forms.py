@@ -275,5 +275,174 @@ class PriceForm(ctk.CTkFrame):
         self.on_save(product["product_id"], method["payment_method_id"], price)
 
     def set_status(self, text: str, is_error: bool = False):
+        self.status_lbl.configure(text=text, text_color=COLORS["status_err"] if is_error else COLORS["status_ok"])
+
+class CustomerForm(ctk.CTkScrollableFrame):
+    """Datos del cliente. Para vender hace falta email y al menos una dirección."""
+    FIELDS = [
+        ("name", "Nombre (obligatorio)"),
+        ("surname", "Apellido"),
+        ("nickname", "Apodo"),
+        ("email", "Email (necesario para vender)"),
+        ("instagram", "Instagram (ej: @ana.dulces)"),
+        ("phone", "Teléfono (ej: +54 11 1234-5678)"),
+        ("age", "Edad (0 a 120)"),
+        ("gender", "Género"),
+        ("likes", "Likes (número, opcional)"),
+        ("notes", "Notas"),
+    ]
+
+    # on_save recibe: id (None si es alta) y los datos del cliente
+    def __init__(self, master, on_save: Callable[[Optional[int], Dict], None]):
+        super().__init__(master, corner_radius=10)
+        self.on_save = on_save
+        self.current_editing_id: Optional[int] = None
+        self.entries: Dict[str, ctk.CTkEntry] = {}
+
+        ctk.CTkLabel(self, text="Datos del Cliente", font=ctk.CTkFont(size=18, weight="bold")).pack(
+            padx=20, pady=(20, 15))
+        for key, placeholder in self.FIELDS:
+            entry = ctk.CTkEntry(self, placeholder_text=placeholder)
+            entry.pack(padx=20, pady=6, fill="x")
+            self.entries[key] = entry
+
+        self.btn_save = ctk.CTkButton(self, text="Agregar Cliente", command=self._handle_save,
+                                      fg_color=COLORS["primary"], hover_color=COLORS["primary_hover"])
+        self.btn_save.pack(padx=20, pady=(15, 5), fill="x")
+        self.btn_cancel = ctk.CTkButton(self, text="Cancelar Edición", command=self.clear,
+                                        fg_color=COLORS["cancel"], hover_color=COLORS["cancel_hover"])
+        self.status_lbl = ctk.CTkLabel(self, text="", text_color=COLORS["status_ok"], wraplength=240)
+        self.status_lbl.pack(padx=20, pady=12)
+
+    def _handle_save(self):
+        data = {key: entry.get().strip() for key, entry in self.entries.items()}
+        if not data["name"]:
+            self.set_status("El nombre es obligatorio.", is_error=True)
+            return
+        if data["email"] and ("@" not in data["email"] or "." not in data["email"].split("@")[-1]):
+            self.set_status("El email no tiene un formato válido.", is_error=True)
+            return
+        if data["age"] and (not data["age"].isdigit() or int(data["age"]) > 120):
+            self.set_status("La edad debe ser un número entre 0 y 120.", is_error=True)
+            return
+        if data["likes"] and not data["likes"].isdigit():
+            self.set_status("Los likes deben ser un número entero.", is_error=True)
+            return
+        self.on_save(self.current_editing_id, data)
+
+    def populate(self, customer: Dict):
+        self.current_editing_id = customer["customer_id"]
+        for key, entry in self.entries.items():
+            entry.delete(0, "end")
+            value = customer.get(key)
+            entry.insert(0, "" if value is None else str(value))
+        self.btn_save.configure(text="Guardar Cambios", fg_color=COLORS["success"])
+        self.btn_cancel.pack(padx=20, pady=(5, 0), fill="x", after=self.btn_save)
+        self.set_status(f"Modificando cliente #{customer['customer_id']}")
+
+    def clear(self):
+        self.current_editing_id = None
+        for entry in self.entries.values():
+            entry.delete(0, "end")
+        self.btn_save.configure(text="Agregar Cliente", fg_color=COLORS["primary"])
+        self.btn_cancel.pack_forget()
+
+    def set_status(self, text: str, is_error: bool = False):
         self.status_lbl.configure(text=text,
                                   text_color=COLORS["status_err"] if is_error else COLORS["status_ok"])
+
+
+class AddressForm(ctk.CTkScrollableFrame):
+    """Dirección de delivery. Primero se elige el cliente; la dirección no cambia de cliente."""
+    NO_DATA = "(sin clientes)"
+    FIELDS = [
+        ("address", "Dirección (obligatorio)"),
+        ("locality", "Localidad"),
+        ("province", "Provincia"),
+        ("country", "País"),
+        ("postal_code", "Código postal"),
+        ("notes", "Notas (ej: tocar timbre 3B)"),
+    ]
+
+    # on_save recibe: id del cliente, id de la dirección (None si es alta), datos
+    def __init__(self, master, on_save: Callable[[int, Optional[int], Dict], None],
+                 on_customer_change: Optional[Callable[[int], None]] = None):
+        super().__init__(master, corner_radius=10)
+        self.on_save = on_save
+        self.on_customer_change = on_customer_change
+        self.current_editing_id: Optional[int] = None
+        self._customers: Dict[str, Dict] = {}
+        self.entries: Dict[str, ctk.CTkEntry] = {}
+
+        ctk.CTkLabel(self, text="Dirección de Entrega", font=ctk.CTkFont(size=18, weight="bold")).pack(
+            padx=20, pady=(20, 15))
+        self.menu_customer = ctk.CTkOptionMenu(self, values=[self.NO_DATA], command=self._customer_changed)
+        self.menu_customer.pack(padx=20, pady=6, fill="x")
+        for key, placeholder in self.FIELDS:
+            entry = ctk.CTkEntry(self, placeholder_text=placeholder)
+            entry.pack(padx=20, pady=6, fill="x")
+            self.entries[key] = entry
+
+        self.btn_save = ctk.CTkButton(self, text="Agregar Dirección", command=self._handle_save,
+                                      fg_color=COLORS["primary"], hover_color=COLORS["primary_hover"])
+        self.btn_save.pack(padx=20, pady=(15, 5), fill="x")
+        self.btn_cancel = ctk.CTkButton(self, text="Cancelar Edición", command=self.clear,
+                                        fg_color=COLORS["cancel"], hover_color=COLORS["cancel_hover"])
+        self.status_lbl = ctk.CTkLabel(self, text="", text_color=COLORS["status_ok"], wraplength=240)
+        self.status_lbl.pack(padx=20, pady=12)
+
+    @staticmethod
+    def _label(c: Dict) -> str:
+        return f"#{c['customer_id']} {c['name']} {c.get('surname') or ''}".strip()
+
+    def set_customers(self, customers: List[Dict], selected_id: Optional[int] = None):
+        """Se llama en cada refresh; conserva el cliente elegido."""
+        self._customers = {self._label(c): c for c in customers}
+        labels = list(self._customers) or [self.NO_DATA]
+        self.menu_customer.configure(values=labels)
+        chosen = next((l for l, c in self._customers.items() if c["customer_id"] == selected_id), labels[0])
+        self.menu_customer.set(chosen)
+        self._customer_changed(chosen)
+
+    def select_customer(self, customer_id: int):
+        label = next((l for l, c in self._customers.items() if c["customer_id"] == customer_id), None)
+        if label:
+            self.menu_customer.set(label)
+            self._customer_changed(label)
+
+    def _customer_changed(self, label: str):
+        customer = self._customers.get(label)
+        if customer and self.on_customer_change:
+            self.on_customer_change(customer["customer_id"])
+
+    def _handle_save(self):
+        customer = self._customers.get(self.menu_customer.get())
+        if not customer:
+            self.set_status("Elegí un cliente.", is_error=True)
+            return
+        data = {key: entry.get().strip() for key, entry in self.entries.items()}
+        if not data["address"]:
+            self.set_status("La dirección es obligatoria.", is_error=True)
+            return
+        self.on_save(customer["customer_id"], self.current_editing_id, data)
+
+    def populate(self, address: Dict):
+        self.current_editing_id = address["address_id"]
+        for key, entry in self.entries.items():
+            entry.delete(0, "end")
+            entry.insert(0, address.get(key) or "")
+        self.menu_customer.configure(state="disabled")   # la dirección no cambia de cliente
+        self.btn_save.configure(text="Guardar Cambios", fg_color=COLORS["success"])
+        self.btn_cancel.pack(padx=20, pady=(5, 0), fill="x", after=self.btn_save)
+        self.set_status(f"Modificando dirección #{address['address_id']}")
+
+    def clear(self):
+        self.current_editing_id = None
+        for entry in self.entries.values():
+            entry.delete(0, "end")
+        self.menu_customer.configure(state="normal")
+        self.btn_save.configure(text="Agregar Dirección", fg_color=COLORS["primary"])
+        self.btn_cancel.pack_forget()
+
+    def set_status(self, text: str, is_error: bool = False):
+        self.status_lbl.configure(text=text, text_color=COLORS["status_err"] if is_error else COLORS["status_ok"])
