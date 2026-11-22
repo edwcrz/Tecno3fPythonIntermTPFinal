@@ -18,7 +18,10 @@ def api(method: str, path: str, **kwargs) -> requests.Response:
 def ensure(list_path: str, exists, create_path: str, payload: dict, label: str) -> dict:
     """Devuelve el registro existente o lo crea."""
     res = api("GET", list_path)
-    res.raise_for_status()
+    # res.raise_for_status()
+    if not res.ok:
+        print(f"✗  {label}: GET {list_path} -> {res.status_code} {res.text}")
+        sys.exit(1)
     for item in res.json():
         if exists(item):
             print(f"=  ya existe: {label}")
