@@ -13,7 +13,7 @@ como la URL base de la API REST backend, los parámetros de geometría de la ven
 la paleta de colores y temas cromáticos de la interfaz visual.
 """
 
-API_BASE_URL = "http://127.0.0.1:8000/"
+API_BASE_URL = "http://127.0.0.1:8000"
 
 WINDOW_TITLE = "Pasteleria Mordere"
 WINDOW_SIZE = "950x600"
