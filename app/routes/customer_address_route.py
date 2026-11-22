@@ -1,29 +1,38 @@
-from fastapi import APIRouter, Depends, status
+"""
+/app/routes/customer_route.py
+"""
 import sqlite3
-from typing import List
+
+from fastapi import APIRouter, Depends, status
+
+from app.controllers.customer_controller import CustomerController
 from app.database import get_db_connection
+from app.views.customer_schema import CustomerCreate, CustomerResponse, CustomerUpdate
 
-from app.models.customer_address_model import CustomerAddressModel
-from app.views.customer_address_schema import CustomerAddressCreate, CustomerAddressResponse, CustomerAddressUpdate
+router = APIRouter(prefix="/customer", tags=["Customer"])
 
-router = APIRouter(prefix="/customer_address", tags=["CustomerAddress"])
 
-@router.get("/", response_model=list[CustomerAddressResponse])
-def get_customer_address(db: sqlite3.Connection = Depends(get_db_connection)):
-    return [dict(row) for row in CustomerAddressModel.get_all(db)]    
+@router.get("/", response_model=list[CustomerResponse])
+def get_customers(db: sqlite3.Connection = Depends(get_db_connection)):
+    return CustomerController.get_all(db)
 
-@router.get("/{customer_address_id}", response_model=CustomerAddressResponse)
-def get_customer_address_by_id(customer_address_id = int, db: sqlite3.Connection = Depends(get_db_connection)):
-    return [CustomerAddressModel.get_by_id(db, customer_address_id)]
 
-@router.post("/", response_model=CustomerAddressResponse)
-def create_customer_address(customer_address: CustomerAddressCreate, db: sqlite3.Connection = Depends(get_db_connection)):
-    return [CustomerAddressModel.create(db, customer_address)]    
+@router.get("/{customer_id}", response_model=CustomerResponse)
+def get_customer(customer_id: int, db: sqlite3.Connection = Depends(get_db_connection)):
+    return CustomerController.get(db, customer_id)
 
-@router.put("/{customer_address_id}", response_model=CustomerAddressResponse)
-def update_customer_address(customer_address_id: int, customer_address: CustomerAddressUpdate, db: sqlite3.Connection = Depends(get_db_connection)):
-    return [CustomerAddressModel.update(db, customer_address_id, customer_address)]
 
-@router.delete("/{customer_address_id}", response_model=CustomerAddressResponse, status_code=status.HTTP_200_OK)
-def delete_customer_address(customer_address_id = int, db: sqlite3.Connection = Depends(get_db_connection)):
-    return [CustomerAddressModel.delete(db, customer_address_id)]
+@router.post("/", response_model=CustomerResponse, status_code=status.HTTP_201_CREATED)
+def create_customer(body: CustomerCreate, db: sqlite3.Connection = Depends(get_db_connection)):
+    return CustomerController.create(db, body.model_dump())
+
+
+@router.put("/{customer_id}", response_model=CustomerResponse)
+def update_customer(customer_id: int, body: CustomerUpdate,
+                    db: sqlite3.Connection = Depends(get_db_connection)):
+    return CustomerController.update(db, customer_id, body.model_dump())
+
+
+@router.delete("/{customer_id}", response_model=CustomerResponse)
+def delete_customer(customer_id: int, db: sqlite3.Connection = Depends(get_db_connection)):
+    return CustomerController.delete(db, customer_id)
