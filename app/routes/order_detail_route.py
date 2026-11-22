@@ -10,7 +10,7 @@ from app.controllers.order_detail_controller import OrderDetailController
 from app.database import get_db_connection
 from app.views.order_schema import OrderDetailResponse, OrderItemCreate
 
-router = APIRouter(prefix="/order", tags=["Order Detail"])
+router = APIRouter(prefix="/order_detail", tags=["Order Detail"])
 
 
 @router.get("/{order_id}/items", response_model=list[OrderDetailResponse])
