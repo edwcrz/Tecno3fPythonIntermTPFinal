@@ -7,11 +7,9 @@ from fastapi import APIRouter, Depends, status
 
 from app.controllers.product_payment_controller import ProductPaymentController
 from app.database import get_db_connection
-from app.views.product_payment_schema import (PriceListResponse, ProductPaymentCreate,
-                                              ProductPaymentResponse, ProductPaymentUpdate)
+from app.views.product_payment_schema import (PriceListResponse, ProductPaymentCreate, ProductPaymentResponse, ProductPaymentUpdate)
 
 router = APIRouter(prefix="/product_payment", tags=["Product Payment"])
-
 
 @router.get("/", response_model=list[ProductPaymentResponse])
 def get_product_payments(db: sqlite3.Connection = Depends(get_db_connection)):

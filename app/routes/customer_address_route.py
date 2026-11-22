@@ -4,7 +4,7 @@ from typing import List
 from app.database import get_db_connection
 
 from app.models.customer_address_model import CustomerAddressModel
-from app.views import CustomerAddressCreate, CustomerAddressResponse, CustomerAddressUpdate
+from app.views.customer_address_schema import CustomerAddressCreate, CustomerAddressResponse, CustomerAddressUpdate
 
 router = APIRouter(prefix="/customer_address", tags=["CustomerAddress"])
 
